@@ -1,6 +1,6 @@
 import { type ParentProps, Show, createSignal, onMount } from "solid-js";
 import { A, Route, RouteDataArgs, useMatch, useNavigate, useParams } from "@solidjs/router";
-import MainLayout from "./components/layout/MainLayout";
+import { MainLayout } from "./components/layout/MainLayout";
 import { TitleBar } from "./components/layout/TitleBar";
 import { Sidebar } from "./components/layout/Sidebar";
 import { StatusBar } from "./components/layout/StatusBar";

@@ -18,9 +18,9 @@ export default defineConfig(async () => ({
   // Vite options tailored for Tauri development
   clearScreen: false,
   server: {
-    port: 1420,
-    strictPort: true,
-    host: host || false,
+    host: "0.0.0.0",
+    port: 8000,
+    strictPort: false,
     hmr: host
       ? {
           protocol: "ws",
@@ -33,7 +33,7 @@ export default defineConfig(async () => ({
     },
   },
   build: {
-    target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
+    target: "esnext",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
