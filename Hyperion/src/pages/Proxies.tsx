@@ -1,325 +1,247 @@
-import { createSignal, For, Show, onMount } from "solid-js";
-import { clashApi } from "../services/clash-api";
-import { useI18n } from "../i18n";
-import type { ProxyMap, ProxyInfo } from "../types/clash";
-import { getDelayColor, formatDelay } from "../utils/color";
+import { createSignal, createEffect, For, Show } from "solid-js";
+import { Search, Zap, ChevronDown, ChevronRight } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
+import type { ClashProxy, ClashProxyGroup } from "@/types/clash";
 
-// ==========================================
-// Proxy Node Card
-// ==========================================
-function ProxyNodeCard(props: {
-  proxy: ProxyInfo;
-  isActive: boolean;
-  onSelect: () => void;
-  onTestDelay: () => void;
-}) {
-  const delayColor = () => getDelayColor(props.proxy.history?.[0]?.delay);
-
-  return (
-    <div
-      class="p-3 rounded-lg cursor-pointer transition-all duration-200"
-      style={{
-        background: props.isActive ? "var(--accent-muted)" : "var(--bg-tertiary)",
-        border: `1px solid ${props.isActive ? "rgba(6,182,212,0.3)" : "var(--border-subtle)"}`,
-      }}
-      onClick={props.onSelect}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        props.onTestDelay();
-      }}
-      onMouseEnter={(e) => {
-        if (!props.isActive) {
-          (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!props.isActive) {
-          (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)";
-          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)";
-        }
-      }}
-    >
-      <div class="flex items-center justify-between">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>
-              {props.proxy.name}
-            </span>
-            <span
-              class="text-[10px] px-1.5 py-0.5 rounded font-medium"
-              style={{
-                background: "var(--bg-primary)",
-                color: "var(--text-tertiary)",
-              }}
-            >
-              {props.proxy.type}
-            </span>
-          </div>
-        </div>
-        <div
-          class="flex-shrink-0 px-2 py-0.5 rounded text-xs font-mono font-medium ml-2"
-          style={{
-            background: delayColor().bg,
-            color: delayColor().text,
-          }}
-        >
-          {formatDelay(props.proxy.history?.[0]?.delay)}
-        </div>
-      </div>
-    </div>
-  );
+function getDelayClass(delay: number) {
+  if (!delay || delay === 0) return "delay-badge-timeout";
+  if (delay <= 200) return "delay-badge-excellent";
+  if (delay <= 500) return "delay-badge-good";
+  if (delay <= 1000) return "delay-badge-moderate";
+  return "delay-badge-poor";
 }
 
-// ==========================================
-// Proxy Group
-// ==========================================
-function ProxyGroup(props: {
-  name: string;
-  proxy: ProxyInfo;
-  allProxies: ProxyMap;
-  onSelectProxy: (group: string, name: string) => void;
-  onTestDelay: (name: string) => void;
-}) {
-  const [expanded, setExpanded] = createSignal(true);
-  const [filter, setFilter] = createSignal("");
+function getDelayText(delay: number) {
+  if (!delay || delay === 0) return "超时";
+  return `${delay}ms`;
+}
 
-  const nodes = () => {
-    const all = props.proxy.all || [];
-    if (!filter()) return all;
-    return all.filter((name) => name.toLowerCase().includes(filter().toLowerCase()));
+function getProtocolLabel(type: string) {
+  const map: Record<string, string> = {
+    Shadowsocks: "SS",
+    VMess: "VMess",
+    Trojan: "Trojan",
+    VLESS: "VLESS",
+    Hysteria2: "H2",
+    Hysteria: "H1",
+    TUIC: "TUIC",
+    WireGuard: "WG",
+    Direct: "直连",
+    Reject: "拒绝",
+    Compatible: "兼容",
+    Selector: "选择",
+    URLTest: "自动",
+    Fallback: "备选",
+    LoadBalance: "负载",
+  };
+  return map[type] || type;
+}
+
+export default function Proxies() {
+  const clash = useClashStore();
+  const [proxies, setProxies] = createSignal<Record<string, ClashProxy>>({});
+  const [groups, setGroups] = createSignal<ClashProxyGroup[]>([]);
+  const [expanded, setExpanded] = createSignal<Set<string>>(new Set());
+  const [search, setSearch] = createSignal("");
+  const [testing, setTesting] = createSignal(false);
+  const [testingNode, setTestingNode] = createSignal<string | null>(null);
+
+  const fetchProxies = async () => {
+    try {
+      const res = await fetch(`${clash.baseUrl()}/proxies`, { headers: clash.headers() });
+      if (res.ok) {
+        const data = await res.json();
+        setProxies(data.proxies);
+        const g = Object.values(data.proxies).filter(
+          (p: any) => p.all !== undefined || p.now !== undefined
+        ) as ClashProxyGroup[];
+        setGroups(g);
+      }
+    } catch {}
   };
 
-  const isSelector = () =>
-    props.proxy.type === "Selector" ||
-    props.proxy.type === "URLTest" ||
-    props.proxy.type === "Fallback" ||
-    props.proxy.type === "LoadBalance";
+  createEffect(() => {
+    if (clash.connected()) fetchProxies();
+  });
 
-  return (
-    <div
-      class="rounded-xl overflow-hidden neon-border"
-      style={{ background: "var(--bg-secondary)" }}
-    >
-      {/* Group Header */}
-      <div
-        class="flex items-center justify-between p-3 cursor-pointer"
-        style={{ "border-bottom": expanded() ? "1px solid var(--border-subtle)" : "none" }}
-        onClick={() => setExpanded(!expanded())}
-      >
-        <div class="flex items-center gap-2">
-          <svg
-            class="w-3.5 h-3.5 transition-transform duration-200"
-            style={{
-              transform: expanded() ? "rotate(90deg)" : "rotate(0deg)",
-              color: "var(--text-tertiary)",
-            }}
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-          </svg>
-          <span class="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            {props.name}
-          </span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded" style={{
-            background: "var(--bg-tertiary)",
-            color: "var(--text-tertiary)",
-          }}>
-            {props.proxy.type}
-          </span>
-          <span class="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-            ({(props.proxy.all || []).length})
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          {props.proxy.now && (
-            <span class="text-xs" style={{ color: "var(--accent)" }}>
-              {props.proxy.now}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Group Content */}
-      <Show when={expanded()}>
-        <div class="p-3">
-          {/* Search */}
-          {(props.proxy.all || []).length > 5 && (
-            <input
-              class="w-full px-3 py-1.5 rounded-lg text-xs mb-3 outline-none"
-              style={{
-                background: "var(--bg-tertiary)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border-subtle)",
-              }}
-              placeholder="Search nodes..."
-              value={filter()}
-              onInput={(e) => setFilter(e.currentTarget.value)}
-              onFocus={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
-              }}
-              onBlur={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)";
-              }}
-            />
-          )}
-
-          {/* Node List */}
-          <div class="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto">
-            <For each={nodes()}>
-              {(nodeName) => {
-                const nodeProxy = () => props.allProxies[nodeName];
-                return (
-                  <Show when={nodeProxy()}>
-                    {(proxy) => (
-                      <ProxyNodeCard
-                        proxy={proxy()}
-                        isActive={props.proxy.now === nodeName}
-                        onSelect={() => props.onSelectProxy(props.name, nodeName)}
-                        onTestDelay={() => props.onTestDelay(nodeName)}
-                      />
-                    )}
-                  </Show>
-                );
-              }}
-            </For>
-          </div>
-        </div>
-      </Show>
-    </div>
-  );
-}
-
-// ==========================================
-// Proxies Page
-// ==========================================
-export default function Proxies() {
-  const { t } = useI18n();
-  const [proxies, setProxies] = createSignal<ProxyMap>({});
-  const [loading, setLoading] = createSignal(true);
-  const [testing, setTesting] = createSignal<string | null>(null);
-
-  const loadProxies = async () => {
-    try {
-      setLoading(true);
-      const data = await clashApi.getProxies();
-      setProxies(data);
-    } catch (e) {
-      console.error("Failed to load proxies:", e);
-    } finally {
-      setLoading(false);
-    }
+  const toggleGroup = (name: string) => {
+    const next = new Set(expanded());
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setExpanded(next);
   };
 
   const selectProxy = async (group: string, name: string) => {
     try {
-      await clashApi.selectProxy(group, name);
-      // Refresh proxy list
-      await loadProxies();
-    } catch (e) {
-      console.error("Failed to select proxy:", e);
-    }
+      await fetch(`${clash.baseUrl()}/proxies/${encodeURIComponent(group)}`, {
+        method: "PUT",
+        headers: clash.headers(),
+        body: JSON.stringify({ name }),
+      });
+      fetchProxies();
+    } catch {}
   };
 
-  const testDelay = async (name: string) => {
-    setTesting(name);
+  const testDelay = async (group: string, name: string) => {
+    setTestingNode(name);
     try {
-      await clashApi.testDelay(name);
-      await loadProxies();
-    } catch (e) {
-      console.error("Failed to test delay:", e);
-    } finally {
-      setTesting(null);
+      const params = new URLSearchParams({ timeout: "5000", url: "https://www.gstatic.com/generate_204" });
+      const token = clash.token();
+      if (token) params.set("token", token);
+      await fetch(
+        `${clash.baseUrl()}/proxies/${encodeURIComponent(name)}/delay?${params}`
+      );
+      setTimeout(fetchProxies, 500);
+    } catch {}
+    setTestingNode(null);
+  };
+
+  const testAll = async () => {
+    setTesting(true);
+    const g = groups();
+    for (const group of g) {
+      try {
+        const all = group.all || [];
+        const params = new URLSearchParams({ timeout: "5000", url: "https://www.gstatic.com/generate_204" });
+        const token = clash.token();
+        if (token) params.set("token", token);
+        await fetch(
+          `${clash.baseUrl()}/group/${encodeURIComponent(group.name)}/delay?${params}`,
+          { method: "GET" }
+        );
+      } catch {}
     }
+    setTimeout(() => {
+      fetchProxies();
+      setTesting(false);
+    }, 2000);
   };
 
-  const testAllDelays = async () => {
-    const proxyData = proxies();
-    for (const [name, proxy] of Object.entries(proxyData)) {
-      if (proxy.all && proxy.all.length > 0) {
-        for (const nodeName of proxy.all) {
-          testDelay(nodeName);
-        }
-      }
-    }
+  const getGroupNodes = (group: ClashProxyGroup) => {
+    const all = group.all || [];
+    const allProxies = proxies();
+    return all
+      .map((name) => allProxies[name])
+      .filter(Boolean)
+      .filter((p) => {
+        const q = search().toLowerCase();
+        if (!q) return true;
+        return p.name.toLowerCase().includes(q);
+      });
   };
-
-  // Get only group-type proxies (Selector, URLTest, Fallback, LoadBalance)
-  const groups = () => {
-    const proxyData = proxies();
-    return Object.entries(proxyData)
-      .filter(([, proxy]) =>
-        ["Selector", "URLTest", "Fallback", "LoadBalance"].includes(proxy.type)
-      )
-      .sort(([a], [b]) => a.localeCompare(b));
-  };
-
-  onMount(loadProxies);
 
   return (
-    <div class="flex flex-col gap-4 h-full overflow-y-auto">
+    <div class="animate-page-in space-y-6">
       {/* Header */}
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Proxies
-          </h1>
-          <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-            Manage proxy groups and nodes. Right-click to test latency.
-          </p>
+          <h1 class="text-2xl font-bold tracking-tight">代理</h1>
+          <p class="text-sm text-base-content/50 mt-0.5">管理代理节点和代理组</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-secondary)",
-              border: "1px solid var(--border-subtle)",
-            }}
-            onClick={testAllDelays}
-          >
-            Test All
-          </button>
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: "var(--accent-muted)",
-              color: "var(--accent)",
-              border: "1px solid rgba(6,182,212,0.3)",
-            }}
-            onClick={loadProxies}
-          >
-            Refresh
-          </button>
-        </div>
+        <button
+          class={`btn btn-primary btn-sm rounded-xl gap-1.5 ${testing() ? "loading" : ""}`}
+          onClick={testAll}
+        >
+          <Zap size={14} />
+          全部测速
+        </button>
+      </div>
+
+      {/* Search */}
+      <div class="relative">
+        <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+        <input
+          type="text"
+          placeholder="搜索节点..."
+          value={search()}
+          onInput={(e) => setSearch(e.currentTarget.value)}
+          class="input input-bordered input-sm w-full max-w-md rounded-xl pl-9 bg-base-100"
+        />
       </div>
 
       {/* Proxy Groups */}
-      <Show
-        when={!loading()}
-        fallback={
-          <div class="flex items-center justify-center py-20">
-            <div class="text-sm" style={{ color: "var(--text-tertiary)" }}>
-              Loading...
-            </div>
-          </div>
-        }
-      >
-        <div class="flex flex-col gap-3">
-          <For each={groups()}>
-            {([name, proxy]) => (
-              <ProxyGroup
-                name={name}
-                proxy={proxy}
-                allProxies={proxies()}
-                onSelectProxy={selectProxy}
-                onTestDelay={testDelay}
-              />
-            )}
-          </For>
-        </div>
-      </Show>
+      <div class="space-y-3">
+        <For each={groups()}>
+          {(group, gi) => {
+            const isExpanded = () => expanded().has(group.name);
+            const nodes = () => getGroupNodes(group);
+            const isAuto = () => group.type === "URLTest" || group.type === "Fallback" || group.type === "LoadBalance";
+
+            return (
+              <div class="card bg-base-100 animate-card-in" style={{ "animation-delay": `${gi() * 60}ms` }}>
+                {/* Group Header */}
+                <button
+                  class="w-full flex items-center justify-between p-4 hover:bg-base-200/50 rounded-xl transition-colors"
+                  onClick={() => toggleGroup(group.name)}
+                >
+                  <div class="flex items-center gap-3">
+                    {isExpanded() ? <ChevronDown size={16} class="text-base-content/40" /> : <ChevronRight size={16} class="text-base-content/40" />}
+                    <span class="font-medium">{group.name}</span>
+                    <span class="badge badge-ghost badge-sm">{nodes().length}</span>
+                    {isAuto() && <span class="badge badge-primary badge-sm badge-outline">自动</span>}
+                  </div>
+                  <Show when={group.now}>
+                    <span class="text-xs text-base-content/50 truncate max-w-[200px]">
+                      {group.now}
+                    </span>
+                  </Show>
+                </button>
+
+                {/* Nodes */}
+                <Show when={isExpanded()}>
+                  <div class="px-3 pb-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                      <For each={nodes()}>
+                        {(node, ni) => {
+                          const isActive = () => group.now === node.name;
+                          const isTesting = () => testingNode() === node.name;
+
+                          return (
+                            <button
+                              class={`proxy-card flex items-center justify-between p-3 rounded-xl border text-left ${
+                                isActive()
+                                  ? "border-primary/40 bg-primary/5"
+                                  : "border-base-300 bg-base-200/40 hover:bg-base-200"
+                              }`}
+                              onClick={() => selectProxy(group.name, node.name)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                testDelay(group.name, node.name);
+                              }}
+                              style={{ "animation-delay": `${ni() * 30}ms` }}
+                            >
+                              <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5">
+                                  {isActive() && (
+                                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-subtle-pulse flex-shrink-0" />
+                                  )}
+                                  <span class="text-sm font-medium truncate">
+                                    {node.name.replace(/^[\p{Emoji}\s]+/u, "")}
+                                  </span>
+                                </div>
+                                <span class="text-[11px] text-base-content/40 mt-0.5 block">
+                                  {getProtocolLabel(node.type)}
+                                </span>
+                              </div>
+                              <span
+                                class={`badge badge-sm font-mono text-[11px] ${getDelayClass(node.history?.[node.history.length - 1]?.delay || 0)} ${
+                                  isTesting() ? "animate-subtle-pulse" : ""
+                                }`}
+                              >
+                                {isTesting() ? "..." : getDelayText(node.history?.[node.history.length - 1]?.delay || 0)}
+                              </span>
+                            </button>
+                          );
+                        }}
+                      </For>
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            );
+          }}
+        </For>
+      </div>
     </div>
   );
 }

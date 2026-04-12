@@ -1,230 +1,169 @@
-import { createSignal, onMount } from "solid-js";
-import { clashApi } from "../services/clash-api";
-import { useClashStore } from "../stores/clash";
-import { useI18n } from "../i18n";
-import type { ProxyProviders } from "../types/clash";
+import { createSignal, createEffect, For, Show } from "solid-js";
+import { RefreshCw, MapPin, Database, RotateCcw } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
 
 export default function Configs() {
-  const { t } = useI18n();
   const clash = useClashStore();
+  const [config, setConfig] = createSignal<any>(null);
+  const [providers, setProviders] = createSignal<any[]>([]);
+  const [loading, setLoading] = createSignal<string | null>(null);
 
-  const [configPath, setConfigPath] = createSignal("");
-  const [loading, setLoading] = createSignal(false);
-  const [geoUpdating, setGeoUpdating] = createSignal(false);
-  const [proxyProviders, setProxyProviders] = createSignal<ProxyProviders>({});
-
-  const loadProviders = async () => {
+  const fetchConfig = async () => {
     try {
-      const data = await clashApi.getProxyProviders();
-      setProxyProviders(data);
-    } catch (e) {
-      console.error("Failed to load providers:", e);
-    }
+      const res = await fetch(`${clash.baseUrl()}/configs`, { headers: clash.headers() });
+      if (res.ok) setConfig(await res.json());
+    } catch {}
   };
 
-  const reloadConfig = async () => {
+  const fetchProviders = async () => {
     try {
-      setLoading(true);
-      await clashApi.reloadConfig(configPath());
-      // Refresh store
-      await clash.connect();
-    } catch (e) {
-      console.error("Failed to reload config:", e);
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch(`${clash.baseUrl()}/providers/proxies`, { headers: clash.headers() });
+      if (res.ok) {
+        const data = await res.json();
+        setProviders(data.providers || []);
+      }
+    } catch {}
   };
 
-  const updateGeo = async () => {
-    try {
-      setGeoUpdating(true);
-      await clashApi.updateGeoData();
-    } catch (e) {
-      console.error("Failed to update GeoIP:", e);
-    } finally {
-      setGeoUpdating(false);
+  createEffect(() => {
+    if (clash.connected()) {
+      fetchConfig();
+      fetchProviders();
     }
+  });
+
+  const action = async (name: string, fn: () => Promise<void>) => {
+    setLoading(name);
+    await fn();
+    setLoading(null);
+    setTimeout(() => { fetchConfig(); fetchProviders(); }, 500);
   };
 
-  const restartCore = async () => {
-    try {
-      await clashApi.restart();
-    } catch (e) {
-      console.error("Failed to restart:", e);
-    }
-  };
+  const reloadConfig = () => action("reload", async () => {
+    await fetch(`${clash.baseUrl()}/configs`, { method: "PUT", headers: clash.headers(), body: JSON.stringify({ path: "" }) });
+  });
+
+  const updateGeoIP = () => action("geoip", async () => {
+    await fetch(`${clash.baseUrl()}/configs/geo`, { method: "POST", headers: clash.headers(), body: JSON.stringify({ name: "geoip.dat" }) });
+  });
+
+  const updateGeoSite = () => action("geosite", async () => {
+    await fetch(`${clash.baseUrl()}/configs/geo`, { method: "POST", headers: clash.headers(), body: JSON.stringify({ name: "geosite.dat" }) });
+  });
+
+  const restartCore = () => action("restart", async () => {
+    await fetch(`${clash.baseUrl()}/restart`, { method: "POST", headers: clash.headers() });
+  });
 
   const updateProvider = async (name: string) => {
     try {
-      await clashApi.updateProxyProvider(name);
-      await loadProviders();
-    } catch (e) {
-      console.error("Failed to update provider:", e);
-    }
+      await fetch(`${clash.baseUrl()}/providers/proxies/${encodeURIComponent(name)}`, {
+        method: "PUT",
+        headers: clash.headers(),
+      });
+      setTimeout(fetchProviders, 1000);
+    } catch {}
   };
 
-  onMount(() => {
-    loadProviders();
-  });
+  const actions = [
+    { name: "reload", icon: RefreshCw, label: "重载配置", desc: "重新加载 Clash 配置文件", action: reloadConfig },
+    { name: "geoip", icon: MapPin, label: "更新 GeoIP", desc: "更新 GeoIP 数据库", action: updateGeoIP },
+    { name: "geosite", icon: Database, label: "更新 GeoSite", desc: "更新 GeoSite 数据库", action: updateGeoSite },
+    { name: "restart", icon: RotateCcw, label: "重启内核", desc: "安全重启 Clash Meta", action: restartCore },
+  ];
+
+  const configInfo = () => {
+    const c = config();
+    if (!c) return [];
+    return [
+      { label: "端口 (Mixed)", value: c["mixed-port"] || "-" },
+      { label: "HTTP 端口", value: c.port || "-" },
+      { label: "Socks 端口", value: c["socks-port"] || "-" },
+      { label: "模式", value: c.mode || "-" },
+      { label: "日志级别", value: c["log-level"] || "-" },
+      { label: "允许局域网", value: c["allow-lan"] ? "是" : "否" },
+      { label: "TUN 模式", value: c.tun?.enable ? "是" : "否" },
+      { label: "IPv6", value: c.ipv6 ? "是" : "否" },
+    ];
+  };
 
   return (
-    <div class="flex flex-col gap-4 h-full overflow-y-auto">
-      {/* Header */}
+    <div class="animate-page-in space-y-6">
       <div>
-        <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-          Configs
-        </h1>
-        <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-          Manage Clash configuration
-        </p>
+        <h1 class="text-2xl font-bold tracking-tight">配置</h1>
+        <p class="text-sm text-base-content/50 mt-0.5">管理 Clash 内核配置和数据库</p>
       </div>
 
-      {/* Actions */}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button
-          class="p-4 rounded-xl neon-border transition-all duration-200"
-          style={{ background: "var(--bg-secondary)" }}
-          onClick={reloadConfig}
-          disabled={loading()}
-        >
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                Reload Config
+      {/* Action Cards */}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <For each={actions}>
+          {(a, i) => {
+            const Icon = a.icon;
+            return (
+              <div class="stat-card card bg-base-100 p-4 animate-card-in" style={{ "animation-delay": `${i() * 60}ms` }}>
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <Icon size={16} />
+                  </div>
+                  <span class="font-medium text-sm">{a.label}</span>
+                </div>
+                <p class="text-xs text-base-content/50 mb-3">{a.desc}</p>
+                <button
+                  class={`btn btn-sm btn-primary btn-outline rounded-xl w-full ${loading() === a.name ? "loading" : ""}`}
+                  onClick={a.action}
+                >
+                  执行
+                </button>
               </div>
-              <div class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                Reload Clash configuration file
-              </div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          class="p-4 rounded-xl neon-border transition-all duration-200"
-          style={{ background: "var(--bg-secondary)" }}
-          onClick={updateGeo}
-          disabled={geoUpdating()}
-        >
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--accent2-muted)", color: "var(--accent2)" }}>
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                Update GeoIP
-              </div>
-              <div class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                Update GeoIP and GeoSite databases
-              </div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          class="p-4 rounded-xl neon-border transition-all duration-200"
-          style={{ background: "var(--bg-secondary)" }}
-          onClick={restartCore}
-        >
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--warning-muted)", color: "var(--warning)" }}>
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                Restart Core
-              </div>
-              <div class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                Restart Clash Meta core
-              </div>
-            </div>
-          </div>
-        </button>
+            );
+          }}
+        </For>
       </div>
 
       {/* Config Info */}
-      <div class="rounded-xl p-4 neon-border" style={{ background: "var(--bg-secondary)" }}>
-        <h3 class="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-          Configuration Info
-        </h3>
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <InfoRow label="Mode" value={clash.config()?.mode?.toUpperCase() || "---"} />
-          <InfoRow label="Mixed Port" value={String(clash.config()?.mixed_port || "---")} />
-          <InfoRow label="Allow LAN" value={clash.config()?.allow_lan ? "Yes" : "No"} />
-          <InfoRow label="Log Level" value={clash.config()?.log_level || "---"} />
-          <InfoRow label="IPv6" value={clash.config()?.ipv6 ? "Enabled" : "Disabled"} />
-          <InfoRow label="TUN" value={clash.config()?.tun?.enable ? "Enabled" : "Disabled"} />
-          <InfoRow label="External Controller" value={clash.config()?.external_controller || "---"} />
-          <InfoRow label="Version" value={clash.version()?.version || "---"} />
+      <div class="card bg-base-100 animate-card-in stagger-5">
+        <div class="p-4 border-b border-base-300">
+          <span class="font-medium text-sm">配置信息</span>
+        </div>
+        <div class="divide-y divide-base-200/50">
+          <For each={configInfo()}>
+            {(item) => (
+              <div class="flex items-center justify-between px-4 py-2.5">
+                <span class="text-sm text-base-content/60">{item.label}</span>
+                <span class="text-sm font-medium font-mono">{String(item.value)}</span>
+              </div>
+            )}
+          </For>
         </div>
       </div>
 
-      {/* Proxy Providers */}
-      <div class="rounded-xl p-4 neon-border" style={{ background: "var(--bg-secondary)" }}>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            Proxy Providers
-          </h3>
+      {/* Providers */}
+      <div class="card bg-base-100 animate-card-in stagger-6">
+        <div class="flex items-center justify-between p-4 border-b border-base-300">
+          <span class="font-medium text-sm">代理集 (Providers)</span>
+          <span class="badge badge-sm badge-ghost">{providers().length}</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {Object.entries(proxyProviders()).map(([name, provider]) => (
-            <div
-              class="p-3 rounded-lg transition-colors duration-200"
-              style={{
-                background: "var(--bg-tertiary)",
-                border: "1px solid var(--border-subtle)",
-              }}
-            >
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>
-                  {name}
-                </span>
-                <button
-                  class="px-2 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ml-2"
-                  style={{
-                    background: "var(--accent-muted)",
-                    color: "var(--accent)",
-                  }}
-                  onClick={() => updateProvider(name)}
-                >
-                  Update
+        <div class="divide-y divide-base-200/50">
+          <For each={providers()}>
+            {(p) => (
+              <div class="flex items-center justify-between px-4 py-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-medium truncate">{p.name}</div>
+                  <div class="text-xs text-base-content/40">
+                    {p.vehicleType} · {p.type} · 更新于 {p.updatedAt ? new Date(p.updatedAt).toLocaleString() : "-"}
+                  </div>
+                </div>
+                <button class="btn btn-xs btn-ghost rounded-xl" onClick={() => updateProvider(p.name)}>
+                  更新
                 </button>
               </div>
-              <div class="flex items-center gap-3 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                <span>{provider.proxies.length} nodes</span>
-                <span>{provider.vehicle_type}</span>
-                {provider.subscriptionInfo && (
-                  <span>
-                    {provider.subscriptionInfo.Upload > 0 && "Has traffic info"}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+            )}
+          </For>
+          <Show when={providers().length === 0}>
+            <div class="text-center py-6 text-base-content/30 text-sm">暂无代理集</div>
+          </Show>
         </div>
       </div>
-    </div>
-  );
-}
-
-function InfoRow(props: { label: string; value: string }) {
-  return (
-    <div class="flex items-center justify-between py-1.5 px-2 rounded" style={{ background: "var(--bg-tertiary)" }}>
-      <span style={{ color: "var(--text-tertiary)" }}>{props.label}</span>
-      <span class="font-mono font-medium" style={{ color: "var(--text-primary)" }}>
-        {props.value}
-      </span>
     </div>
   );
 }

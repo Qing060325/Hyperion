@@ -1,227 +1,543 @@
-/* ==========================================
-   Hyperion Design System — CSS Variables
-   ========================================== */
-
 @import "tailwindcss";
-
-:root {
-  /* === Colors === */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1a2332;
-  --bg-hover: #1e293b;
-  --bg-active: #253449;
-
-  --border-default: #1e293b;
-  --border-subtle: #162032;
-  --border-focus: #06b6d4;
-
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --text-inverse: #0f172a;
-
-  --accent: #06b6d4;
-  --accent-hover: #22d3ee;
-  --accent-muted: rgba(6, 182, 212, 0.15);
-  --accent2: #8b5cf6;
-  --accent2-hover: #a78bfa;
-  --accent2-muted: rgba(139, 92, 246, 0.15);
-
-  --success: #10b981;
-  --success-muted: rgba(16, 185, 129, 0.15);
-  --warning: #f59e0b;
-  --warning-muted: rgba(245, 158, 11, 0.15);
-  --error: #ef4444;
-  --error-muted: rgba(239, 68, 68, 0.15);
-
-  /* === Delay Colors === */
-  --delay-excellent: #10b981;
-  --delay-good: #06b6d4;
-  --delay-medium: #f59e0b;
-  --delay-poor: #ef4444;
-  --delay-unknown: #475569;
-
-  /* === Spacing === */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-lg: 16px;
-  --spacing-xl: 24px;
-  --spacing-2xl: 32px;
-  --spacing-3xl: 48px;
-
-  /* === Radius === */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  /* === Shadows === */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.1);
-  --shadow-glow-strong: 0 0 40px rgba(6, 182, 212, 0.2);
-
-  /* === Transitions === */
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow: 400ms ease;
-
-  /* === Typography === */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "MiSans", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-
-  /* === Z-index === */
-  --z-dropdown: 100;
-  --z-modal-backdrop: 200;
-  --z-modal: 210;
-  --z-toast: 300;
-  --z-tooltip: 400;
+@plugin "daisyui" {
+  themes: light --default, dark;
 }
 
 /* ==========================================
-   Global Styles
+   Apple Design System — Hyperion
    ========================================== */
 
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Custom DaisyUI Theme Overrides */
+@theme {
+  /* Spring Animation Curves (Linear-style) */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+
+  /* Animation Durations */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-page: 350ms;
+
+  /* Stagger Delay */
+  --stagger: 50ms;
+
+  /* Font */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Apple Colors — shared */
+  --color-apple-blue: #007AFF;
+  --color-apple-blue-dark: #0A84FF;
+  --color-apple-green: #34C759;
+  --color-apple-green-dark: #30D158;
+  --color-apple-orange: #FF9500;
+  --color-apple-orange-dark: #FFD60A;
+  --color-apple-red: #FF3B30;
+  --color-apple-red-dark: #FF453A;
+  --color-apple-purple: #AF52DE;
+  --color-apple-purple-dark: #BF5AF2;
+  --color-apple-teal: #5AC8FA;
+  --color-apple-teal-dark: #64D2FF;
+  --color-apple-indigo: #5856D6;
+  --color-apple-indigo-dark: #5E5CE6;
+
+  /* Delay indicator colors */
+  --color-delay-excellent: #30D158;
+  --color-delay-good: #0A84FF;
+  --color-delay-moderate: #FFD60A;
+  --color-delay-poor: #FF453A;
+  --color-delay-timeout: #636366;
+
+  /* Light Theme Backgrounds */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f5f5f7;
+  --color-surface-tertiary: #e8e8ed;
+  --color-surface-elevated: #ffffff;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #86868b;
+  --color-text-tertiary: #aeaeb2;
+
+  /* Sidebar */
+  --sidebar-width: 256px;
+  --sidebar-collapsed: 72px;
 }
 
+/* ==========================================
+   DaisyUI Theme: light (Apple Light)
+   ========================================== */
+[data-theme="light"] {
+  --color-base-100: #ffffff;
+  --color-base-200: #f5f5f7;
+  --color-base-300: #e8e8ed;
+  --color-base-content: #1d1d1f;
+  --color-primary: #007AFF;
+  --color-primary-content: #ffffff;
+  --color-secondary: #f5f5f7;
+  --color-secondary-content: #1d1d1f;
+  --color-accent: #007AFF;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1d1d1f;
+  --color-neutral-content: #ffffff;
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-error: #FF3B30;
+  --color-info: #007AFF;
+}
+
+/* ==========================================
+   DaisyUI Theme: dark (Apple Dark)
+   ========================================== */
+[data-theme="dark"] {
+  --color-base-100: #1c1c1e;
+  --color-base-200: #2c2c2e;
+  --color-base-300: #3a3a3c;
+  --color-base-content: #f5f5f7;
+  --color-primary: #0A84FF;
+  --color-primary-content: #ffffff;
+  --color-secondary: #2c2c2e;
+  --color-secondary-content: #f5f5f7;
+  --color-accent: #0A84FF;
+  --color-accent-content: #ffffff;
+  --color-neutral: #f5f5f7;
+  --color-neutral-content: #1d1d1f;
+  --color-success: #30D158;
+  --color-warning: #FFD60A;
+  --color-error: #FF453A;
+  --color-info: #0A84FF;
+}
+
+/* ==========================================
+   Base Styles
+   ========================================== */
 html {
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-primary);
-  background: var(--bg-primary);
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  min-height: 100vh;
+  font-family: var(--font-sans);
   overflow: hidden;
-  user-select: none;
-  background: var(--bg-primary);
-}
-
-#root {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+  background-color: var(--color-base-200);
+  color: var(--color-base-content);
 }
 
 /* ==========================================
-   Scrollbar
+   Keyframe Animations (Linear-style)
    ========================================== */
 
+/* Page enter — subtle slide + fade */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card stagger entrance */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Fade in from left (sidebar items) */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale in (badges, indicators) */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Subtle pulse (active indicator) */
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Number pop (delay change) */
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Slide down (dropdowns, panels) */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Expand width (sidebar toggle) */
+@keyframes expandWidth {
+  from { width: var(--sidebar-collapsed); }
+  to { width: var(--sidebar-width); }
+}
+
+/* Collapse width */
+@keyframes collapseWidth {
+  from { width: var(--sidebar-width); }
+  to { width: var(--sidebar-collapsed); }
+}
+
+/* Theme transition flash */
+@keyframes themeFlash {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ==========================================
+   Animation Utility Classes
+   ========================================== */
+
+.animate-page-in {
+  animation: pageIn var(--duration-page) var(--ease-spring) backwards;
+}
+
+.animate-card-in {
+  animation: cardIn var(--duration-slow) var(--ease-spring) backwards;
+}
+
+.animate-fade-left {
+  animation: fadeInLeft var(--duration-normal) var(--ease-spring) backwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--duration-normal) var(--ease-out) backwards;
+}
+
+.animate-slide-down {
+  animation: slideDown var(--duration-normal) var(--ease-spring) backwards;
+}
+
+.animate-number-pop {
+  animation: numberPop 0.3s var(--ease-spring);
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: calc(var(--stagger) * 1); }
+.stagger-2 { animation-delay: calc(var(--stagger) * 2); }
+.stagger-3 { animation-delay: calc(var(--stagger) * 3); }
+.stagger-4 { animation-delay: calc(var(--stagger) * 4); }
+.stagger-5 { animation-delay: calc(var(--stagger) * 5); }
+.stagger-6 { animation-delay: calc(var(--stagger) * 6); }
+.stagger-7 { animation-delay: calc(var(--stagger) * 7); }
+.stagger-8 { animation-delay: calc(var(--stagger) * 8); }
+.stagger-9 { animation-delay: calc(var(--stagger) * 9); }
+.stagger-10 { animation-delay: calc(var(--stagger) * 10); }
+
+/* ==========================================
+   Interaction Styles
+   ========================================== */
+
+/* Proxy card hover */
+.proxy-card {
+  transition: transform var(--duration-fast) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-spring),
+              background-color var(--duration-fast) ease;
+}
+.proxy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+[data-theme="dark"] .proxy-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.proxy-card:active {
+  transform: scale(0.98);
+}
+
+/* Stat card hover */
+.stat-card {
+  transition: transform var(--duration-fast) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-spring);
+}
+.stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+[data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Sidebar nav item */
+.nav-item {
+  transition: background-color var(--duration-fast) ease,
+              color var(--duration-fast) ease,
+              transform var(--duration-fast) var(--ease-spring);
+}
+.nav-item:hover {
+  transform: translateX(2px);
+}
+.nav-item:active {
+  transform: scale(0.97);
+}
+
+/* List row hover */
+.list-row {
+  transition: background-color var(--duration-fast) ease;
+}
+
+/* ==========================================
+   Skeleton Loading
+   ========================================== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-base-300) 25%,
+    var(--color-base-200) 50%,
+    var(--color-base-300) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ==========================================
+   Glassmorphism (Sidebar)
+   ========================================== */
+.glass {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+[data-theme="light"] .glass {
+  background-color: rgba(245, 245, 247, 0.72);
+}
+
+[data-theme="dark"] .glass {
+  background-color: rgba(28, 28, 30, 0.72);
+}
+
+/* ==========================================
+   Scrollbar (Apple-style)
+   ========================================== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-hover);
-  border-radius: var(--radius-full);
+  background-color: rgba(128, 128, 128, 0.2);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background-color: rgba(128, 128, 128, 0.4);
 }
 
 /* ==========================================
-   Selection
+   Theme Transition
    ========================================== */
-
-::selection {
-  background: var(--accent-muted);
-  color: var(--accent);
+[data-theme] {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ==========================================
-   Focus Styles
+   Custom DaisyUI Component Overrides
    ========================================== */
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* Badge — pill shape */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all var(--duration-fast) ease;
+}
+
+/* Toggle switch */
+.toggle {
+  transition: all var(--duration-normal) var(--ease-spring);
+}
+
+/* Card — clean with subtle border */
+.card {
+  border: 1px solid var(--color-base-300);
+  transition: transform var(--duration-fast) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-spring),
+              border-color var(--duration-fast) ease;
+}
+
+[data-theme="light"] .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Input / Select */
+.input, .select {
+  transition: border-color var(--duration-fast) ease,
+              box-shadow var(--duration-fast) ease;
+}
+.input:focus, .select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+  border-color: var(--color-primary);
+}
+[data-theme="dark"] .input:focus,
+[data-theme="dark"] .select:focus {
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
+}
+
+/* Table */
+.table {
+  font-size: 0.875rem;
+}
+
+/* Tab */
+.tab {
+  transition: color var(--duration-fast) ease,
+              border-color var(--duration-fast) ease;
+}
+
+/* Tooltip */
+.tooltip {
+  transition: opacity var(--duration-fast) ease,
+              transform var(--duration-fast) var(--ease-spring);
 }
 
 /* ==========================================
-   Utility Classes
+   Delay Color Utilities
    ========================================== */
+.delay-excellent { color: var(--color-delay-excellent); }
+.delay-good { color: var(--color-delay-good); }
+.delay-moderate { color: var(--color-delay-moderate); }
+.delay-poor { color: var(--color-delay-poor); }
+.delay-timeout { color: var(--color-delay-timeout); }
 
-.glass {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.delay-badge-excellent {
+  background-color: rgba(48, 209, 88, 0.12);
+  color: var(--color-delay-excellent);
+}
+.delay-badge-good {
+  background-color: rgba(10, 132, 255, 0.12);
+  color: var(--color-delay-good);
+}
+.delay-badge-moderate {
+  background-color: rgba(255, 214, 10, 0.12);
+  color: var(--color-delay-moderate);
+}
+.delay-badge-poor {
+  background-color: rgba(255, 69, 58, 0.12);
+  color: var(--color-delay-poor);
+}
+.delay-badge-timeout {
+  background-color: rgba(99, 99, 102, 0.12);
+  color: var(--color-delay-timeout);
 }
 
-.glass-border {
-  border: 1px solid rgba(30, 41, 59, 0.6);
+/* ==========================================
+   Layout
+   ========================================== */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
-.neon-border {
-  border: 1px solid rgba(6, 182, 212, 0.2);
-  box-shadow: var(--shadow-glow);
+.sidebar-container {
+  flex-shrink: 0;
+  height: 100%;
+  transition: width var(--duration-slow) var(--ease-spring);
 }
 
-.neon-border:hover {
-  border-color: rgba(6, 182, 212, 0.4);
-  box-shadow: var(--shadow-glow-strong);
+.sidebar-container.expanded {
+  width: var(--sidebar-width);
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.sidebar-container.collapsed {
+  width: var(--sidebar-collapsed);
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+/* ==========================================
+   Responsive: Mobile Bottom Nav
+   ========================================== */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-container {
+    display: none !important;
   }
-  50% {
-    box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .main-content {
+    padding-bottom: 72px;
+  }
+  [data-theme="light"] .mobile-nav {
+    background-color: rgba(245, 245, 247, 0.85);
+    border-top: 1px solid #e8e8ed;
+  }
+  [data-theme="dark"] .mobile-nav {
+    background-color: rgba(28, 28, 30, 0.85);
+    border-top: 1px solid #3a3a3c;
   }
 }
 
-/* ==========================================
-   Transition utilities
-   ========================================== */
-
-.fade-enter {
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-.fade-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--transition-normal), transform var(--transition-normal);
-}
-
-.fade-exit {
-  opacity: 1;
-}
-
-.fade-exit-active {
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+/* Tablet: sidebar collapsed by default */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar-container.expanded {
+    width: var(--sidebar-collapsed);
+  }
 }

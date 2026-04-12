@@ -1,144 +1,135 @@
-import { createSignal } from "solid-js";
-import { clashApi } from "../services/clash-api";
-import { useI18n } from "../i18n";
-import type { DNSQueryResult } from "../types/clash";
+import { createSignal, Show, For } from "solid-js";
+import { Search, Trash2 } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
+
+const recordTypes = ["A", "AAAA", "CNAME", "TXT", "MX", "NS"];
+
+interface DNSResult {
+  Status: number;
+  Question: { Name: string; Type: number }[];
+  Answer?: { name: string; type: number; TTL: number; data: string }[];
+}
 
 export default function DNS() {
-  const { t } = useI18n();
-  const [queryDomain, setQueryDomain] = createSignal("");
-  const [queryType, setQueryType] = createSignal("A");
-  const [queryResult, setQueryResult] = createSignal<DNSQueryResult | null>(null);
-  const [querying, setQuerying] = createSignal(false);
-  const [flushing, setFlushing] = createSignal(false);
+  const clash = useClashStore();
+  const [domain, setDomain] = createSignal("");
+  const [recordType, setRecordType] = createSignal("A");
+  const [results, setResults] = createSignal<DNSResult | null>(null);
+  const [loading, setLoading] = createSignal(false);
+  const [fakeIPCount, setFakeIPCount] = createSignal(0);
 
-  const dnsQuery = async () => {
-    if (!queryDomain()) return;
+  const queryDNS = async () => {
+    if (!domain()) return;
+    setLoading(true);
     try {
-      setQuerying(true);
-      const result = await clashApi.dnsQuery(queryDomain(), queryType());
-      setQueryResult(result);
-    } catch (e) {
-      console.error("DNS query failed:", e);
-    } finally {
-      setQuerying(false);
-    }
+      const params = new URLSearchParams({ name: domain(), type: recordType() });
+      const token = clash.token();
+      if (token) params.set("token", token);
+      const res = await fetch(`${clash.baseUrl()}/dns/query?${params}`, { headers: clash.headers() });
+      if (res.ok) setResults(await res.json());
+    } catch {}
+    setLoading(false);
+  };
+
+  const fetchFakeIP = async () => {
+    try {
+      const res = await fetch(`${clash.baseUrl()}/cache/fakeip/count`, { headers: clash.headers() });
+      if (res.ok) {
+        const data = await res.json();
+        setFakeIPCount(data.count || 0);
+      }
+    } catch {}
   };
 
   const flushFakeIP = async () => {
     try {
-      setFlushing(true);
-      await clashApi.flushFakeIP();
-    } catch (e) {
-      console.error("Failed to flush:", e);
-    } finally {
-      setFlushing(false);
-    }
+      await fetch(`${clash.baseUrl()}/cache/fakeip/flush`, { method: "POST", headers: clash.headers() });
+      setFakeIPCount(0);
+    } catch {}
   };
 
+  fetchFakeIP();
+
   return (
-    <div class="flex flex-col gap-4 h-full overflow-y-auto">
-      {/* Header */}
+    <div class="animate-page-in space-y-6">
       <div>
-        <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-          DNS
-        </h1>
-        <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-          DNS query and cache management
-        </p>
+        <h1 class="text-2xl font-bold tracking-tight">DNS</h1>
+        <p class="text-sm text-base-content/50 mt-0.5">DNS 查询和 Fake-IP 缓存管理</p>
       </div>
 
       {/* DNS Query */}
-      <div class="rounded-xl p-4 neon-border" style={{ background: "var(--bg-secondary)" }}>
-        <h3 class="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-          DNS Query
-        </h3>
-        <div class="flex gap-2">
-          <input
-            class="flex-1 px-3 py-2 rounded-lg text-xs outline-none"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-default)",
-            }}
-            placeholder="example.com"
-            value={queryDomain()}
-            onInput={(e) => setQueryDomain(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && dnsQuery()}
-          />
-          <select
-            class="px-3 py-2 rounded-lg text-xs outline-none cursor-pointer"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-default)",
-            }}
-            value={queryType()}
-            onChange={(e) => setQueryType(e.currentTarget.value)}
-          >
-            <option value="A">A</option>
-            <option value="AAAA">AAAA</option>
-            <option value="CNAME">CNAME</option>
-            <option value="TXT">TXT</option>
-            <option value="MX">MX</option>
-            <option value="NS">NS</option>
-          </select>
-          <button
-            class="px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: "var(--accent-muted)",
-              color: "var(--accent)",
-              border: "1px solid rgba(6,182,212,0.3)",
-            }}
-            onClick={dnsQuery}
-            disabled={querying() || !queryDomain()}
-          >
-            Query
-          </button>
+      <div class="card bg-base-100 animate-card-in stagger-1">
+        <div class="p-4 border-b border-base-300">
+          <span class="font-medium text-sm">DNS 查询</span>
         </div>
-
-        {/* Query Result */}
-        {queryResult() && (
-          <div class="mt-3 p-3 rounded-lg font-mono text-xs" style={{ background: "var(--bg-tertiary)" }}>
-            <div class="flex flex-col gap-1" style={{ color: "var(--text-secondary)" }}>
-              <span>Status: <span style={{ color: queryResult()?.Status === 0 ? "var(--success)" : "var(--error)" }}>
-                {queryResult()?.Status === 0 ? "NOERROR" : `ERROR (${queryResult()?.Status})`}
-              </span></span>
-              {queryResult()?.Answer && queryResult()!.Answer.length > 0 && (
-                <div class="mt-2">
-                  <span style={{ color: "var(--text-tertiary)" }}>Answers:</span>
-                  {queryResult()!.Answer.map((answer, i) => (
-                    <div key={i} class="flex items-center gap-2 ml-3 mt-1">
-                      <span style={{ color: "var(--accent)" }}>{answer.data}</span>
-                      <span style={{ color: "var(--text-tertiary)" }}>[{answer.type}] TTL: {answer.TTL}s</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        <div class="p-4">
+          <div class="flex gap-2 mb-4">
+            <input
+              type="text"
+              placeholder="输入域名..."
+              value={domain()}
+              onInput={(e) => setDomain(e.currentTarget.value)}
+              onKeyDown={(e) => e.key === "Enter" && queryDNS()}
+              class="input input-bordered input-sm flex-1 rounded-xl bg-base-200"
+            />
+            <select
+              class="select select-bordered select-sm rounded-xl bg-base-200"
+              value={recordType()}
+              onChange={(e) => setRecordType(e.currentTarget.value)}
+            >
+              <For each={recordTypes}>{(t) => <option value={t}>{t}</option>}</For>
+            </select>
+            <button class={`btn btn-primary btn-sm rounded-xl ${loading() ? "loading" : ""}`} onClick={queryDNS}>
+              <Search size={14} />
+              查询
+            </button>
           </div>
-        )}
+
+          <Show when={results()}>
+            {(r) => (
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class={`badge badge-sm ${r().Status === 0 ? "badge-success" : "badge-error"}`}>
+                    {r().Status === 0 ? "成功" : `错误 (${r().Status})`}
+                  </span>
+                  <Show when={r().Question?.[0]}>
+                    <span class="text-xs text-base-content/50">{r().Question[0].Name}</span>
+                  </Show>
+                </div>
+                <Show when={r().Answer && r().Answer.length > 0}>
+                  <div class="space-y-1">
+                    <For each={r().Answer}>
+                      {(a) => (
+                        <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-base-200/50 text-sm">
+                          <span class="font-mono text-base-content/80">{a.data}</span>
+                          <span class="text-xs text-base-content/40">TTL: {a.TTL}s</span>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </div>
+            )}
+          </Show>
+        </div>
       </div>
 
-      {/* FakeIP */}
-      <div class="rounded-xl p-4 neon-border" style={{ background: "var(--bg-secondary)" }}>
-        <h3 class="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-          Fake-IP Cache
-        </h3>
-        <p class="text-xs mb-3" style={{ color: "var(--text-tertiary)" }}>
-          Flush the Fake-IP cache to resolve DNS issues.
-        </p>
-        <button
-          class="px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200"
-          style={{
-            background: "var(--warning-muted)",
-            color: "var(--warning)",
-            border: "1px solid rgba(245,158,11,0.3)",
-          }}
-          onClick={flushFakeIP}
-          disabled={flushing()}
-        >
-          Flush Fake-IP Cache
-        </button>
+      {/* Fake-IP */}
+      <div class="card bg-base-100 animate-card-in stagger-2">
+        <div class="flex items-center justify-between p-4 border-b border-base-300">
+          <span class="font-medium text-sm">Fake-IP 缓存</span>
+          <span class="badge badge-sm badge-ghost">{fakeIPCount()} 条</span>
+        </div>
+        <div class="p-4 flex items-center justify-between">
+          <div>
+            <p class="text-sm text-base-content/70">当前缓存 {fakeIPCount()} 条 Fake-IP 映射记录</p>
+            <p class="text-xs text-base-content/40 mt-0.5">清除缓存可解决 DNS 解析异常问题</p>
+          </div>
+          <button class="btn btn-sm btn-error btn-outline rounded-xl gap-1.5" onClick={flushFakeIP}>
+            <Trash2 size={14} />
+            清除缓存
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,296 +1,214 @@
-import { createSignal, For, Show, createMemo, onMount, onCleanup } from "solid-js";
-import { clashApi } from "../services/clash-api";
-import { useClashWs } from "../services/clash-ws";
-import { useI18n } from "../i18n";
-import type { ConnectionInfo } from "../types/clash";
-import { formatBytes, formatSpeed, formatDuration, formatTime } from "../utils/format";
-import { shorten } from "../utils/format";
+import { createSignal, createEffect, For, Show } from "solid-js";
+import { Search, XCircle, Trash2 } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
+import { formatBytes, formatSpeed } from "@/utils/format";
+
+interface Connection {
+  id: string;
+  metadata: {
+    host: string;
+    network: string;
+    process: string;
+    remoteDestination: string;
+    sni: string;
+    type: string;
+  };
+  upload: number;
+  download: number;
+  start: string;
+  chains: string[];
+  rule: string;
+  rulePayload: string;
+}
 
 export default function Connections() {
-  const { t } = useI18n();
-  const ws = useClashWs();
+  const clash = useClashStore();
+  const [connections, setConnections] = createSignal<Connection[]>([]);
+  const [filter, setFilter] = createSignal("");
+  const [sortKey, setSortKey] = createSignal<string>("");
+  const [sortDir, setSortDir] = createSignal<1 | -1>(-1);
+  let ws: WebSocket | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout>;
 
-  const [connections, setConnections] = createSignal<ConnectionInfo[]>([]);
-  const [filterText, setFilterText] = createSignal("");
-  const [activeTab, setActiveTab] = createSignal<"active" | "closed">("active");
-  const [closedConnections, setClosedConnections] = createSignal<ConnectionInfo[]>([]);
-  const [sortKey, setSortKey] = createSignal<string>("start");
-  const [sortAsc, setSortAsc] = createSignal(false);
-  const [totalDown, setTotalDown] = createSignal(0);
-  const [totalUp, setTotalUp] = createSignal(0);
-
-  const filteredConnections = createMemo(() => {
-    const list = activeTab() === "active" ? connections() : closedConnections();
-    const filter = filterText().toLowerCase().trim();
-    if (!filter) return list;
-
-    return list.filter((conn) => {
-      const meta = conn.metadata;
-      return (
-        conn.id.toLowerCase().includes(filter) ||
-        meta.host?.toLowerCase().includes(filter) ||
-        meta.destination_ip?.toLowerCase().includes(filter) ||
-        meta.process?.toLowerCase().includes(filter) ||
-        conn.rule.toLowerCase().includes(filter) ||
-        conn.chains.some((c) => c.toLowerCase().includes(filter))
-      );
-    });
+  createEffect(() => {
+    if (!clash.connected()) return;
+    connectWs();
+    return () => {
+      if (ws) ws.close();
+      clearTimeout(reconnectTimer);
+    };
   });
 
-  const sortedConnections = createMemo(() => {
-    const list = [...filteredConnections()];
-    const key = sortKey();
-    const asc = sortAsc();
-
-    list.sort((a, b) => {
-      let valA: number | string, valB: number | string;
-
-      switch (key) {
-        case "host":
-          valA = a.metadata.host || a.metadata.destination_ip || "";
-          valB = b.metadata.host || b.metadata.destination_ip || "";
-          break;
-        case "process":
-          valA = a.metadata.process || "";
-          valB = b.metadata.process || "";
-          break;
-        case "rule":
-          valA = a.rule;
-          valB = b.rule;
-          break;
-        case "download":
-          valA = a.download;
-          valB = b.download;
-          break;
-        case "upload":
-          valA = a.upload;
-          valB = b.upload;
-          break;
-        default:
-          valA = a.start;
-          valB = b.start;
-      }
-
-      if (typeof valA === "number" && typeof valB === "number") {
-        return asc ? valA - valB : valB - valA;
-      }
-      return asc
-        ? String(valA).localeCompare(String(valB))
-        : String(valB).localeCompare(String(valA));
-    });
-
-    return list;
-  });
-
-  const closeConnection = async (id: string) => {
+  const connectWs = () => {
     try {
-      await clashApi.closeConnection(id);
-      setConnections((prev) => prev.filter((c) => c.id !== id));
-    } catch (e) {
-      console.error("Failed to close connection:", e);
+      const token = clash.token();
+      const params = token ? `?token=${token}` : "";
+      const wsBase = clash.wsUrl();
+      ws = new WebSocket(`${wsBase.replace("/ws", "")}/connections${params}`);
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.connections) {
+            setConnections(
+              data.connections
+                .slice()
+                .map((c: any) => ({
+                  ...c,
+                  metadata: {
+                    host: c.metadata?.host || c.metadata?.remoteDestination || "",
+                    network: c.metadata?.network || "",
+                    process: c.metadata?.process || "",
+                    remoteDestination: c.metadata?.remoteDestination || "",
+                    sni: c.metadata?.sni || "",
+                    type: c.metadata?.type || "",
+                  },
+                }))
+            );
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connectWs, 3000);
+      };
+    } catch {
+      reconnectTimer = setTimeout(connectWs, 3000);
     }
   };
 
   const closeAll = async () => {
     try {
-      await clashApi.closeAllConnections();
-      setConnections([]);
-      setClosedConnections([]);
-    } catch (e) {
-      console.error("Failed to close all:", e);
+      await fetch(`${clash.baseUrl()}/connections`, {
+        method: "DELETE",
+        headers: clash.headers(),
+      });
+    } catch {}
+  };
+
+  const closeOne = async (id: string) => {
+    try {
+      await fetch(`${clash.baseUrl()}/connections/${id}`, {
+        method: "DELETE",
+        headers: clash.headers(),
+      });
+    } catch {}
+  };
+
+  const filtered = () => {
+    let list = connections();
+    const q = filter().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (c) =>
+          c.metadata.host.toLowerCase().includes(q) ||
+          c.metadata.process.toLowerCase().includes(q) ||
+          c.rule.toLowerCase().includes(q) ||
+          (c.chains || []).join(" ").toLowerCase().includes(q)
+      );
     }
+
+    const key = sortKey();
+    if (key) {
+      list = [...list].sort((a, b) => {
+        let va: any, vb: any;
+        if (key === "host") { va = a.metadata.host; vb = b.metadata.host; }
+        else if (key === "download") { va = a.download; vb = b.download; }
+        else if (key === "upload") { va = a.upload; vb = b.upload; }
+        else if (key === "rule") { va = a.rule; vb = b.rule; }
+        else { va = 0; vb = 0; }
+        return va > vb ? sortDir() : va < vb ? -sortDir() : 0;
+      });
+    }
+    return list;
   };
 
   const toggleSort = (key: string) => {
-    if (sortKey() === key) {
-      setSortAsc(!sortAsc());
-    } else {
-      setSortKey(key);
-      setSortAsc(false);
-    }
+    if (sortKey() === key) setSortDir((d) => (d === 1 ? -1 : 1));
+    else { setSortKey(key); setSortDir(-1); }
   };
 
-  onMount(async () => {
-    // Initial load
-    try {
-      const data = await clashApi.getConnections();
-      setConnections(data.connections || []);
-      setTotalDown(data.download_total);
-      setTotalUp(data.upload_total);
-    } catch (e) {
-      console.error("Failed to load connections:", e);
-    }
-
-    // WebSocket for real-time updates
-    ws.connectConnections((data) => {
-      if (data.connections) {
-        setConnections(data.connections);
-      }
-      setTotalDown(data.download_total);
-      setTotalUp(data.upload_total);
-    });
-  });
-
   return (
-    <div class="flex flex-col gap-4 h-full overflow-hidden">
+    <div class="animate-page-in space-y-6">
       {/* Header */}
-      <div class="flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Connections
-          </h1>
-          <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-            Active: {connections().length} | Total ↑ {formatBytes(totalUp())} ↓ {formatBytes(totalDown())}
+          <h1 class="text-2xl font-bold tracking-tight">连接</h1>
+          <p class="text-sm text-base-content/50 mt-0.5">
+            实时连接管理 · {connections().length} 个活跃连接
           </p>
         </div>
-        <div class="flex items-center gap-2">
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: "var(--error-muted)",
-              color: "var(--error)",
-              border: "1px solid rgba(239,68,68,0.3)",
-            }}
-            onClick={closeAll}
-          >
-            Close All
-          </button>
-        </div>
+        <button class="btn btn-error btn-sm btn-outline rounded-xl gap-1.5" onClick={closeAll}>
+          <Trash2 size={14} />
+          关闭全部
+        </button>
       </div>
 
       {/* Filter */}
-      <div class="flex-shrink-0">
+      <div class="relative">
+        <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
         <input
-          class="w-full px-3 py-2 rounded-lg text-xs outline-none"
-          style={{
-            background: "var(--bg-secondary)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border-default)",
-          }}
-          placeholder="Filter by host, process, rule..."
-          value={filterText()}
-          onInput={(e) => setFilterText(e.currentTarget.value)}
-          onFocus={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
-          }}
-          onBlur={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
-          }}
+          type="text"
+          placeholder="按域名、进程、规则、链路过滤..."
+          value={filter()}
+          onInput={(e) => setFilter(e.currentTarget.value)}
+          class="input input-bordered input-sm w-full max-w-lg rounded-xl pl-9 bg-base-100"
         />
       </div>
 
-      {/* Connections Table */}
-      <div class="flex-1 overflow-auto rounded-xl" style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-default)",
-      }}>
-        <table class="w-full text-xs">
-          <thead>
-            <tr style={{ "border-bottom": "1px solid var(--border-default)" }}>
-              {[
-                { key: "host", label: "Host" },
-                { key: "process", label: "Process" },
-                { key: "rule", label: "Rule" },
-                { key: "download", label: "Download" },
-                { key: "upload", label: "Upload" },
-                { key: "", label: "Chain" },
-              ].map((col) => (
-                <th
-                  class="px-3 py-2.5 text-left font-medium cursor-pointer select-none"
-                  style={{ color: "var(--text-tertiary)" }}
-                  onClick={() => col.key && toggleSort(col.key)}
-                >
-                  <span class="flex items-center gap-1">
-                    {col.label}
-                    {sortKey() === col.key && (
-                      <span style={{ color: "var(--accent)" }}>
-                        {sortAsc() ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </span>
+      {/* Table */}
+      <div class="card bg-base-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr class="border-b border-base-300">
+                <th class="text-xs font-medium text-base-content/50 cursor-pointer hover:text-base-content" onClick={() => toggleSort("host")}>
+                  主机 {sortKey() === "host" && (sortDir() === -1 ? "↓" : "↑")}
                 </th>
-              ))}
-              <th class="px-3 py-2.5 text-right font-medium" style={{ color: "var(--text-tertiary)" }}>
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <For each={sortedConnections()}>
-              {(conn) => (
-                <tr
-                  class="transition-colors duration-150"
-                  style={{
-                    "border-bottom": "1px solid var(--border-subtle)",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "transparent";
-                  }}
-                >
-                  <td class="px-3 py-2" style={{ color: "var(--text-primary)", "max-width": "200px" }}>
-                    <div class="truncate" title={conn.metadata.host || conn.metadata.destination_ip}>
-                      {conn.metadata.host || conn.metadata.destination_ip || "---"}
-                    </div>
-                    <div class="text-[10px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                      {conn.metadata.network?.toUpperCase()} :{conn.metadata.destination_port}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2" style={{ color: "var(--text-secondary)", "max-width": "120px" }}>
-                    <div class="truncate" title={conn.metadata.process || ""}>
-                      {conn.metadata.process || "---"}
-                    </div>
-                    <div class="text-[10px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                      {conn.metadata.source_ip}:{conn.metadata.source_port}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2" style={{ color: "var(--text-secondary)", "max-width": "120px" }}>
-                    <div class="truncate" title={conn.rule}>
-                      {conn.rule}
-                    </div>
-                    <div class="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                      {shorten(conn.rule_payload, 15)}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 font-mono" style={{ color: "var(--accent)" }}>
-                    {formatBytes(conn.download)}
-                    <div class="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                      {conn.curDownload ? formatSpeed(conn.curDownload) : ""}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 font-mono" style={{ color: "var(--accent2)" }}>
-                    {formatBytes(conn.upload)}
-                    <div class="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                      {conn.curUpload ? formatSpeed(conn.curUpload) : ""}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2" style={{ color: "var(--text-tertiary)", "max-width": "150px" }}>
-                    <div class="truncate" title={conn.chains.join(" → ")}>
-                      {conn.chains.join(" → ")}
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 text-right">
-                    <button
-                      class="px-2 py-1 rounded text-[10px] font-medium transition-colors duration-150"
-                      style={{
-                        background: "var(--error-muted)",
-                        color: "var(--error)",
-                      }}
-                      onClick={() => closeConnection(conn.id)}
-                    >
-                      Close
-                    </button>
-                  </td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
-        <Show when={sortedConnections().length === 0}>
-          <div class="flex items-center justify-center py-10 text-xs" style={{ color: "var(--text-tertiary)" }}>
-            No connections
+                <th class="text-xs font-medium text-base-content/50">网络</th>
+                <th class="text-xs font-medium text-base-content/50">进程</th>
+                <th class="text-xs font-medium text-base-content/50 cursor-pointer hover:text-base-content" onClick={() => toggleSort("rule")}>
+                  规则 {sortKey() === "rule" && (sortDir() === -1 ? "↓" : "↑")}
+                </th>
+                <th class="text-xs font-medium text-base-content/50 cursor-pointer hover:text-base-content" onClick={() => toggleSort("download")}>
+                  下载 {sortKey() === "download" && (sortDir() === -1 ? "↓" : "↑")}
+                </th>
+                <th class="text-xs font-medium text-base-content/50 cursor-pointer hover:text-base-content" onClick={() => toggleSort("upload")}>
+                  上传 {sortKey() === "upload" && (sortDir() === -1 ? "↓" : "↑")}
+                </th>
+                <th class="text-xs font-medium text-base-content/50">链路</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={filtered()}>
+                {(conn, i) => (
+                  <tr class="list-row hover:bg-base-200/50 border-b border-base-200/50">
+                    <td class="font-mono text-xs max-w-[180px] truncate">{conn.metadata.host || conn.metadata.remoteDestination}</td>
+                    <td>
+                      <span class={`badge badge-xs ${conn.metadata.network === "udp" ? "badge-warning" : "badge-info"}`}>
+                        {conn.metadata.network?.toUpperCase()}
+                      </span>
+                    </td>
+                    <td class="text-xs text-base-content/70 max-w-[100px] truncate">{conn.metadata.process || "-"}</td>
+                    <td class="text-xs max-w-[120px] truncate">{conn.rule}</td>
+                    <td class="text-xs text-primary font-mono">{formatBytes(conn.download)}</td>
+                    <td class="text-xs text-success font-mono">{formatBytes(conn.upload)}</td>
+                    <td class="text-[11px] text-base-content/40 max-w-[200px] truncate">{(conn.chains || []).join(" → ")}</td>
+                    <td>
+                      <button class="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error" onClick={() => closeOne(conn.id)}>
+                        <XCircle size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
+        <Show when={filtered().length === 0}>
+          <div class="text-center py-12 text-base-content/30">
+            <p class="text-sm">暂无活跃连接</p>
           </div>
         </Show>
       </div>

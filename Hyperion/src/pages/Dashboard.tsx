@@ -1,344 +1,226 @@
-import { createSignal, createEffect, onMount, onCleanup } from "solid-js";
-import { useClashStore } from "../stores/clash";
-import { useClashWs } from "../services/clash-ws";
-import { clashApi } from "../services/clash-api";
-import { useI18n } from "../i18n";
-import { formatBytes, formatSpeed } from "../utils/format";
-import { getDelayColor, formatDelay } from "../utils/color";
+import { createSignal, createEffect, onMount, onCleanup, For } from "solid-js";
+import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
+import { formatBytes, formatSpeed } from "@/utils/format";
 
-// ==========================================
-// Stat Card Component
-// ==========================================
-function StatCard(props: {
-  icon: string;
-  label: string;
-  value: string;
-  subValue?: string;
-  color?: string;
-}) {
-  return (
-    <div
-      class="p-4 rounded-xl transition-all duration-300 neon-border"
-      style={{ background: "var(--bg-secondary)" }}
-    >
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {props.label}
-        </span>
-        <div
-          class="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{
-            background: `${props.color || "var(--accent)"}15`,
-            color: props.color || "var(--accent)",
-          }}
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d={props.icon} />
-          </svg>
-        </div>
-      </div>
-      <div class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-        {props.value}
-      </div>
-      {props.subValue && (
-        <div class="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-          {props.subValue}
-        </div>
-      )}
-    </div>
-  );
-}
+export default function Dashboard() {
+  const clash = useClashStore();
+  const [upSpeed, setUpSpeed] = createSignal(0);
+  const [downSpeed, setDownSpeed] = createSignal(0);
+  const [totalUp, setTotalUp] = createSignal(0);
+  const [totalDown, setTotalDown] = createSignal(0);
+  const [connections, setConnections] = createSignal(0);
+  const [memory, setMemory] = createSignal(0);
+  const [mode, setMode] = createSignal("rule");
+  const [trafficHistory, setTrafficHistory] = createSignal<{ up: number; down: number }[]>([]);
+  let canvasRef: HTMLCanvasElement | undefined;
+  let animFrame: number;
 
-// ==========================================
-// Traffic Chart (Canvas)
-// ==========================================
-function TrafficChart() {
-  let canvasRef: HTMLCanvasElement;
-  const maxPoints = 60;
-  const uploadData = createSignal<number[]>(Array(maxPoints).fill(0));
-  const downloadData = createSignal<number[]>(Array(maxPoints).fill(0));
-  const ws = useClashWs();
+  onMount(async () => {
+    await clash.connect();
+    if (clash.config()) setMode(clash.config()?.mode || "rule");
+  });
 
-  onMount(() => {
+  // Poll memory/connections
+  createEffect(() => {
+    if (!clash.connected()) return;
+    const interval = setInterval(async () => {
+      try {
+        const base = clash.baseUrl();
+        const h = clash.headers();
+        const memRes = await fetch(`${base}/memory`, { headers: h });
+        if (memRes.ok) {
+          const d = await memRes.json();
+          setMemory(d.inuse || 0);
+        }
+      } catch {}
+    }, 3000);
+    onCleanup(() => clearInterval(interval));
+  });
+
+  // Canvas chart
+  createEffect(() => {
+    if (!canvasRef) return;
     const ctx = canvasRef.getContext("2d");
-    let animFrame: number;
+    if (!ctx) return;
 
     const draw = () => {
-      if (!ctx) return;
-      const { width, height } = canvasRef;
-      ctx.clearRect(0, 0, width, height);
+      if (!canvasRef || !ctx) return;
+      const w = canvasRef.width = canvasRef.clientWidth * 2;
+      const h = canvasRef.height = canvasRef.clientHeight * 2;
+      ctx.scale(2, 2);
+      const cw = canvasRef.clientWidth;
+      const ch = canvasRef.clientHeight;
 
-      const upArr = uploadData[0]();
-      const downArr = downloadData[0]();
+      ctx.clearRect(0, 0, cw, ch);
 
-      // Find max value for scaling
-      const maxVal = Math.max(
-        1,
-        ...upArr,
-        ...downArr
-      );
+      const history = trafficHistory();
+      if (history.length < 2) {
+        animFrame = requestAnimationFrame(draw);
+        return;
+      }
 
-      // Draw upload line (purple)
-      drawLine(ctx, upArr, width, height, maxVal, "#8b5cf6", "rgba(139,92,246,0.1)");
-      // Draw download line (cyan)
-      drawLine(ctx, downArr, width, height, maxVal, "#06b6d4", "rgba(6,182,212,0.1)");
+      const maxVal = Math.max(1, ...history.map((h) => Math.max(h.up, h.down)));
+      const points = 120;
+
+      // Grid lines
+      ctx.strokeStyle = getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-base-300")
+        .trim() || "#e8e8ed";
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 4; i++) {
+        const y = (ch / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      const drawArea = (key: "up" | "down", color: string, fillColor: string) => {
+        ctx.beginPath();
+        ctx.moveTo(0, ch);
+        for (let i = 0; i < points; i++) {
+          const idx = Math.max(0, history.length - points + i);
+          const val = history[idx]?.[key] || 0;
+          const x = (cw / (points - 1)) * i;
+          const y = ch - (val / maxVal) * ch * 0.85;
+          if (i === 0) ctx.lineTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.lineTo(cw, ch);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, 0, 0, ch);
+        gradient.addColorStop(0, fillColor);
+        gradient.addColorStop(1, "transparent");
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Line
+        ctx.beginPath();
+        for (let i = 0; i < points; i++) {
+          const idx = Math.max(0, history.length - points + i);
+          const val = history[idx]?.[key] || 0;
+          const x = (cw / (points - 1)) * i;
+          const y = ch - (val / maxVal) * ch * 0.85;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      };
+
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      drawArea("down", isDark ? "#0A84FF" : "#007AFF", isDark ? "rgba(10,132,255,0.15)" : "rgba(0,122,255,0.1)");
+      drawArea("up", isDark ? "#30D158" : "#34C759", isDark ? "rgba(48,209,88,0.15)" : "rgba(52,199,89,0.1)");
 
       animFrame = requestAnimationFrame(draw);
     };
 
-    const drawLine = (
-      ctx: CanvasRenderingContext2D,
-      data: number[],
-      width: number,
-      height: number,
-      maxVal: number,
-      color: string,
-      fillColor: string
-    ) => {
-      const stepX = width / (data.length - 1);
-
-      ctx.beginPath();
-      ctx.moveTo(0, height);
-
-      for (let i = 0; i < data.length; i++) {
-        const x = i * stepX;
-        const y = height - (data[i] / maxVal) * (height - 20) - 10;
-        if (i === 0) {
-          ctx.lineTo(x, y);
-        } else {
-          const prevX = (i - 1) * stepX;
-          const prevY = height - (data[i - 1] / maxVal) * (height - 20) - 10;
-          const cpX = (prevX + x) / 2;
-          ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
-        }
-      }
-
-      ctx.lineTo(width, height);
-      ctx.closePath();
-      ctx.fillStyle = fillColor;
-      ctx.fill();
-
-      // Draw the line on top
-      ctx.beginPath();
-      for (let i = 0; i < data.length; i++) {
-        const x = i * stepX;
-        const y = height - (data[i] / maxVal) * (height - 20) - 10;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          const prevX = (i - 1) * stepX;
-          const prevY = height - (data[i - 1] / maxVal) * (height - 20) - 10;
-          const cpX = (prevX + x) / 2;
-          ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
-        }
-      }
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Glow effect
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    };
-
-    // Push traffic data every second
-    const pushData = () => {
-      const newUp = [...uploadData[0]().slice(1), currentUp];
-      const newDown = [...downloadData[0]().slice(1), currentDown];
-      uploadData[1](newUp);
-      downloadData[1](newDown);
-    };
-
-    let currentUp = 0;
-    let currentDown = 0;
-    const dataInterval = setInterval(pushData, 1000);
-
-    ws.connectTraffic((data) => {
-      currentUp = data.up;
-      currentDown = data.down;
-    });
-
-    draw();
-
-    onCleanup(() => {
-      cancelAnimationFrame(animFrame);
-      clearInterval(dataInterval);
-    });
+    animFrame = requestAnimationFrame(draw);
+    onCleanup(() => cancelAnimationFrame(animFrame));
   });
 
-  return (
-    <div class="rounded-xl p-4 neon-border" style={{ background: "var(--bg-secondary)" }}>
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          Traffic Trend
-        </h3>
-        <div class="flex items-center gap-4 text-xs">
-          <div class="flex items-center gap-1.5">
-            <div class="w-2.5 h-0.5 rounded" style={{ background: "var(--accent)" }} />
-            <span style={{ color: "var(--text-secondary)" }}>Download</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <div class="w-2.5 h-0.5 rounded" style={{ background: "var(--accent2)" }} />
-            <span style={{ color: "var(--text-secondary)" }}>Upload</span>
-          </div>
-        </div>
-      </div>
-      <canvas
-        ref={canvasRef!}
-        style={{ width: "100%", height: "200px" }}
-      />
-    </div>
-  );
-}
-
-// ==========================================
-// Mode Switcher
-// ==========================================
-function ModeSwitcher() {
-  const clash = useClashStore();
-  const { t } = useI18n();
-  const [currentMode, setCurrentMode] = createSignal("rule");
-
-  const modes = [
-    { key: "rule", label: "Rule" },
-    { key: "global", label: "Global" },
-    { key: "direct", label: "Direct" },
-  ];
-
-  const switchMode = async (mode: string) => {
+  const switchMode = async (m: string) => {
     try {
-      await clashApi.patchConfig({ mode: mode as "rule" | "global" | "direct" });
-      setCurrentMode(mode);
-      clash.setConfig((prev) => prev ? { ...prev, mode: mode as "rule" | "global" | "direct" } : prev);
-    } catch (e) {
-      console.error("Failed to switch mode:", e);
-    }
+      const h = clash.headers();
+      await fetch(`${clash.baseUrl()}/configs`, {
+        method: "PATCH",
+        headers: h,
+        body: JSON.stringify({ mode: m }),
+      });
+      setMode(m);
+    } catch {}
   };
 
   return (
-    <div
-      class="p-4 rounded-xl neon-border"
-      style={{ background: "var(--bg-secondary)" }}
-    >
-      <h3 class="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-        Mode
-      </h3>
-      <div class="flex gap-2">
-        {modes.map((mode) => (
-          <button
-            class="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: currentMode() === mode.key ? "var(--accent-muted)" : "var(--bg-tertiary)",
-              color: currentMode() === mode.key ? "var(--accent)" : "var(--text-secondary)",
-              border: currentMode() === mode.key ? "1px solid rgba(6,182,212,0.3)" : "1px solid transparent",
-            }}
-            onClick={() => switchMode(mode.key)}
-          >
-            {mode.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// Dashboard Page
-// ==========================================
-export default function Dashboard() {
-  const clash = useClashStore();
-  const { t } = useI18n();
-
-  const [totalUp, setTotalUp] = createSignal(0);
-  const [totalDown, setTotalDown] = createSignal(0);
-  const [connCount, setConnCount] = createSignal(0);
-  const [upSpeed, setUpSpeed] = createSignal(0);
-  const [downSpeed, setDownSpeed] = createSignal(0);
-  const [memory, setMemory] = createSignal(0);
-  const [startTime, setStartTime] = createSignal(Date.now());
-  const [uptime, setUptime] = createSignal(0);
-
-  let uptimeTimer: ReturnType<typeof setInterval>;
-
-  onMount(() => {
-    // Fetch initial data
-    clashApi.getConnections().then((data) => {
-      setTotalUp(data.upload_total);
-      setTotalDown(data.download_total);
-      setConnCount(data.connections?.length || 0);
-      setMemory(data.memory || 0);
-    });
-
-    // Uptime timer
-    uptimeTimer = setInterval(() => {
-      setUptime(Math.floor((Date.now() - startTime()) / 1000));
-    }, 1000);
-
-    // Set initial mode
-    if (clash.config()?.mode) {
-      // mode is set via clash store
-    }
-  });
-
-  onCleanup(() => {
-    clearInterval(uptimeTimer);
-  });
-
-  return (
-    <div class="flex flex-col gap-5 h-full overflow-y-auto">
+    <div class="animate-page-in space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Dashboard
-          </h1>
-          <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-            {clash.version()
-              ? `Clash Meta v${clash.version().version}`
-              : "Not Connected"}
-          </p>
+          <h1 class="text-2xl font-bold tracking-tight">仪表盘</h1>
+          <p class="text-sm text-base-content/50 mt-0.5">实时监控代理流量与系统状态</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span
+            class={`badge badge-sm gap-1 ${
+              clash.connected() ? "badge-success" : "badge-error"
+            }`}
+          >
+            <span class={`w-1.5 h-1.5 rounded-full ${clash.connected() ? "animate-subtle-pulse" : ""}`} />
+            {clash.connected() ? "已连接" : "未连接"}
+          </span>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Mode Switcher */}
+      <div class="flex gap-2">
+        {(["rule", "global", "direct"] as const).map((m) => (
+          <button
+            onClick={() => switchMode(m)}
+            class={`btn btn-sm rounded-xl ${
+              mode() === m ? "btn-primary" : "btn-ghost"
+            }`}
+          >
+            {m === "rule" && <Shield size={14} />}
+            {m === "global" && <Globe size={14} />}
+            {m === "direct" && <Zap size={14} />}
+            {m === "rule" ? "规则" : m === "global" ? "全局" : "直连"}
+          </button>
+        ))}
+      </div>
+
+      {/* Stat Cards */}
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
-          label={t().dashboard.download}
-          value={formatSpeed(downSpeed())}
-          subValue={`Total: ${formatBytes(totalDown())}`}
-          color="var(--accent)"
-        />
-        <StatCard
-          icon="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
-          label={t().dashboard.upload}
-          value={formatSpeed(upSpeed())}
-          subValue={`Total: ${formatBytes(totalUp())}`}
-          color="var(--accent2)"
-        />
-        <StatCard
-          icon="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z"
-          label={t().dashboard.activeConnections}
-          value={String(connCount())}
-          color="var(--success)"
-        />
-        <StatCard
-          icon="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"
-          label={t().dashboard.memoryUsage}
-          value={formatBytes(memory())}
-          color="var(--warning)"
-        />
+        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-1">
+          <div class="flex items-center gap-2 text-base-content/50 mb-2">
+            <ArrowUp size={16} class="text-success" />
+            <span class="text-xs font-medium">上传速率</span>
+          </div>
+          <div class="text-2xl font-bold tracking-tight">{formatSpeed(upSpeed())}</div>
+          <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalUp())}</div>
+        </div>
+        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-2">
+          <div class="flex items-center gap-2 text-base-content/50 mb-2">
+            <ArrowDown size={16} class="text-primary" />
+            <span class="text-xs font-medium">下载速率</span>
+          </div>
+          <div class="text-2xl font-bold tracking-tight">{formatSpeed(downSpeed())}</div>
+          <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalDown())}</div>
+        </div>
+        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-3">
+          <div class="flex items-center gap-2 text-base-content/50 mb-2">
+            <Activity size={16} class="text-orange-500" />
+            <span class="text-xs font-medium">活跃连接</span>
+          </div>
+          <div class="text-2xl font-bold tracking-tight">{connections()}</div>
+          <div class="text-xs text-base-content/40 mt-1">实时连接数</div>
+        </div>
+        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-4">
+          <div class="flex items-center gap-2 text-base-content/50 mb-2">
+            <Cpu size={16} class="text-purple-500" />
+            <span class="text-xs font-medium">内存使用</span>
+          </div>
+          <div class="text-2xl font-bold tracking-tight">{formatBytes(memory())}</div>
+          <div class="text-xs text-base-content/40 mt-1">Clash Meta</div>
+        </div>
       </div>
 
-      {/* Traffic Chart + Mode */}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="lg:col-span-2">
-          <TrafficChart />
+      {/* Traffic Chart */}
+      <div class="card bg-base-100 animate-card-in stagger-5">
+        <div class="flex items-center justify-between p-4 border-b border-base-300">
+          <span class="font-medium text-sm">流量趋势</span>
+          <div class="flex items-center gap-3 text-xs text-base-content/50">
+            <span class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-primary" /> 下载
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-success" /> 上传
+            </span>
+          </div>
         </div>
-        <div class="flex flex-col gap-4">
-          <ModeSwitcher />
+        <div class="p-4" style={{ height: "200px" }}>
+          <canvas ref={canvasRef} class="w-full h-full" />
         </div>
       </div>
     </div>

@@ -1,203 +1,158 @@
-import { createSignal, For, Show, createMemo, onMount, onCleanup } from "solid-js";
-import { useClashWs } from "../services/clash-ws";
-import { useI18n } from "../i18n";
-import type { LogEntry } from "../types/clash";
+import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
+import { Search, Pause, Play, Trash2, ArrowDown } from "lucide-solid";
+import { useClashStore } from "@/stores/clash";
 
-const MAX_LOGS = 500;
+interface LogEntry {
+  type: string;
+  payload: string;
+}
+
+const levelColors: Record<string, string> = {
+  debug: "badge-ghost",
+  info: "badge-info",
+  warning: "badge-warning",
+  error: "badge-error",
+};
 
 export default function Logs() {
-  const { t } = useI18n();
-  const ws = useClashWs();
-
+  const clash = useClashStore();
   const [logs, setLogs] = createSignal<LogEntry[]>([]);
-  const [level, setLevel] = createSignal<string>("info");
+  const [level, setLevel] = createSignal<string>("");
+  const [search, setSearch] = createSignal("");
   const [paused, setPaused] = createSignal(false);
   const [autoScroll, setAutoScroll] = createSignal(true);
-  const [search, setSearch] = createSignal("");
-
-  let logContainer: HTMLDivElement;
+  const [maxLogs] = createSignal(500);
+  let ws: WebSocket | null = null;
+  let logContainer: HTMLDivElement | undefined;
   let reconnectTimer: ReturnType<typeof setTimeout>;
 
-  const filteredLogs = createMemo(() => {
-    const filter = search().toLowerCase().trim();
-    const list = logs();
-    if (!filter) return list;
-    return list.filter((log) => log.payload.toLowerCase().includes(filter));
+  createEffect(() => {
+    if (!clash.connected()) return;
+    connectWs();
+    return () => {
+      if (ws) ws.close();
+      clearTimeout(reconnectTimer);
+    };
   });
 
-  const addLog = (entry: LogEntry) => {
-    if (paused()) return;
-    setLogs((prev) => {
-      const next = [...prev, entry];
-      return next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
-    });
-  };
+  const connectWs = () => {
+    try {
+      const token = clash.token();
+      const params = new URLSearchParams();
+      if (token) params.set("token", token);
+      if (level()) params.set("level", level());
+      ws = new WebSocket(`${clash.wsUrl().replace("/ws", "")}/logs?${params}`);
 
-  const getLevelColor = (type: string): string => {
-    switch (type) {
-      case "debug": return "var(--text-tertiary)";
-      case "info": return "var(--text-secondary)";
-      case "warning": return "var(--warning)";
-      case "error": return "var(--error)";
-      default: return "var(--text-secondary)";
+      ws.onmessage = (e) => {
+        if (paused()) return;
+        try {
+          const data = JSON.parse(e.data) as LogEntry;
+          setLogs((prev) => {
+            const next = [...prev, data];
+            return next.length > maxLogs() ? next.slice(-maxLogs()) : next;
+          });
+          if (autoScroll() && logContainer) {
+            requestAnimationFrame(() => {
+              if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+            });
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connectWs, 3000);
+      };
+    } catch {
+      reconnectTimer = setTimeout(connectWs, 3000);
     }
   };
 
-  const getLevelBg = (type: string): string => {
-    switch (type) {
-      case "debug": return "rgba(100,116,139,0.1)";
-      case "info": return "transparent";
-      case "warning": return "rgba(245,158,11,0.05)";
-      case "error": return "rgba(239,68,68,0.05)";
-      default: return "transparent";
-    }
+  const filtered = () => {
+    const q = search().toLowerCase();
+    if (!q) return logs();
+    return logs().filter((l) => l.payload.toLowerCase().includes(q));
   };
-
-  const connectLogs = () => {
-    ws.disconnectLogs();
-    ws.connectLogs(level(), (data) => {
-      try {
-        const parsed = JSON.parse(data) as LogEntry;
-        addLog(parsed);
-      } catch { /* ignore */ }
-    });
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
-  };
-
-  const changeLevel = (newLevel: string) => {
-    setLevel(newLevel);
-    clearLogs();
-    connectLogs();
-  };
-
-  onMount(() => {
-    connectLogs();
-  });
-
-  onCleanup(() => {
-    ws.disconnectLogs();
-  });
 
   return (
-    <div class="flex flex-col gap-4 h-full overflow-hidden">
-      {/* Header */}
-      <div class="flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 class="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Logs
-          </h1>
-          <p class="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-            {logs().length} entries
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: paused() ? "var(--accent-muted)" : "var(--bg-tertiary)",
-              color: paused() ? "var(--accent)" : "var(--text-secondary)",
-            }}
-            onClick={() => setPaused(!paused())}
-          >
-            {paused() ? "Resume" : "Pause"}
-          </button>
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-secondary)",
-            }}
-            onClick={clearLogs}
-          >
-            Clear
-          </button>
-        </div>
+    <div class="animate-page-in space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">日志</h1>
+        <p class="text-sm text-base-content/50 mt-0.5">Clash Meta 实时日志流</p>
       </div>
 
       {/* Controls */}
-      <div class="flex items-center gap-3 flex-shrink-0">
-        {/* Level Filter */}
-        <div class="flex gap-1 p-1 rounded-lg" style={{ background: "var(--bg-secondary)" }}>
-          {["debug", "info", "warning", "error"].map((l) => (
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="join">
+          {(["", "debug", "info", "warning", "error"] as const).map((l) => (
             <button
-              class="px-2.5 py-1 rounded-md text-[10px] font-medium transition-all duration-200 capitalize"
-              style={{
-                background: level() === l ? "var(--bg-tertiary)" : "transparent",
-                color: level() === l ? getLevelColor(l) : "var(--text-tertiary)",
+              class={`btn btn-sm join-item rounded-none ${!l && !level() ? "btn-primary" : level() === l ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => {
+                setLevel(l);
+                setLogs([]);
+                if (ws) ws.close();
+                connectWs();
               }}
-              onClick={() => changeLevel(l)}
             >
-              {l}
+              {l ? l.charAt(0).toUpperCase() + l.slice(1) : "全部"}
             </button>
           ))}
         </div>
 
-        {/* Search */}
-        <input
-          class="flex-1 px-3 py-1.5 rounded-lg text-xs outline-none"
-          style={{
-            background: "var(--bg-secondary)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border-default)",
-          }}
-          placeholder="Search logs..."
-          value={search()}
-          onInput={(e) => setSearch(e.currentTarget.value)}
-        />
+        <div class="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+          <input
+            type="text"
+            placeholder="搜索日志..."
+            value={search()}
+            onInput={(e) => setSearch(e.currentTarget.value)}
+            class="input input-bordered input-sm w-full rounded-xl pl-9 bg-base-100"
+          />
+        </div>
 
-        {/* Auto Scroll Toggle */}
-        <button
-          class="px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200"
-          style={{
-            background: autoScroll() ? "var(--accent-muted)" : "var(--bg-tertiary)",
-            color: autoScroll() ? "var(--accent)" : "var(--text-tertiary)",
-          }}
-          onClick={() => setAutoScroll(!autoScroll())}
-        >
-          Auto Scroll
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            class={`btn btn-sm btn-square rounded-xl ${autoScroll() ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setAutoScroll(!autoScroll())}
+            title="自动滚动"
+          >
+            <ArrowDown size={14} />
+          </button>
+          <button
+            class={`btn btn-sm btn-square rounded-xl ${paused() ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setPaused(!paused())}
+            title={paused() ? "继续" : "暂停"}
+          >
+            {paused() ? <Play size={14} /> : <Pause size={14} />}
+          </button>
+          <button class="btn btn-sm btn-square rounded-xl btn-ghost" onClick={() => setLogs([])} title="清空">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
-      {/* Log Content */}
+      {/* Log Output */}
       <div
-        ref={(el) => (logContainer = el)}
-        class="flex-1 overflow-y-auto rounded-xl font-mono text-xs p-3"
-        style={{
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-default)",
-        }}
+        ref={logContainer}
+        class="card bg-base-100 overflow-hidden"
+        style={{ height: "calc(100vh - 240px)", "min-height": "300px" }}
       >
-        <For each={filteredLogs()}>
-          {(log, index) => (
-            <div
-              class="flex items-start gap-2 py-0.5 px-1 rounded"
-              style={{
-                background: getLevelBg(log.type),
-              }}
-            >
-              <span
-                class="flex-shrink-0 w-12 text-right font-semibold uppercase"
-                style={{ color: getLevelColor(log.type), "font-size": "10px" }}
-              >
-                {log.type.slice(0, 4)}
-              </span>
-              <span class="flex-shrink-0" style={{ color: "var(--text-tertiary)" }}>
-                {new Date().toLocaleTimeString("zh-CN", { hour12: false })}
-              </span>
-              <span class="flex-1 break-all" style={{ color: "var(--text-secondary)" }}>
-                {log.payload}
-              </span>
+        <div class="h-full overflow-y-auto p-2 font-mono text-xs leading-relaxed">
+          <For each={filtered()}>
+            {(log) => (
+              <div class="flex items-start gap-2 px-2 py-0.5 rounded hover:bg-base-200/30">
+                <span class={`badge badge-xs ${levelColors[log.type] || "badge-ghost"} mt-0.5 flex-shrink-0`}>
+                  {log.type.slice(0, 4)}
+                </span>
+                <span class="text-base-content/70 whitespace-pre-wrap break-all">{log.payload}</span>
+              </div>
+            )}
+          </For>
+          <Show when={filtered().length === 0}>
+            <div class="text-center py-8 text-base-content/30">
+              <p>等待日志输出...</p>
             </div>
-          )}
-        </For>
-        <Show when={filteredLogs().length === 0}>
-          <div class="flex items-center justify-center py-10" style={{ color: "var(--text-tertiary)" }}>
-            No logs
-          </div>
-        </Show>
+          </Show>
+        </div>
       </div>
     </div>
   );
