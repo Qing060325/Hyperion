@@ -3,17 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>Hyperion — Clash 内核网页前端 | Apple 设计语言</title>
+    <meta name="title" content="Hyperion — Clash 内核网页前端" />
+    <meta name="description" content="Hyperion 是一款现代化、高性能的 Clash 内核网页前端管理面板。基于 SolidJS + DaisyUI 构建，采用 Apple 设计语言和 Linear 风格动画，支持深色/浅色主题切换和响应式布局。" />
+    <meta name="keywords" content="Clash, Clash Meta, Mihomo, 代理管理, 网页前端, SolidJS, DaisyUI, Tailwind CSS, Apple Design, Hyperion, 代理面板, 流量监控, 规则管理" />
+    <meta name="author" content="Qing060325" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://github.com/Qing060325/Hyperion" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/favicon.svg" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://github.com/Qing060325/Hyperion" />
+    <meta property="og:title" content="Hyperion — Clash 内核网页前端" />
+    <meta property="og:description" content="现代化、高性能的 Clash 内核网页前端。Apple 设计语言 + Linear 风格动画，深色/浅色主题，响应式布局。" />
+    <meta property="og:site_name" content="Hyperion" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hyperion — Clash 内核网页前端" />
+    <meta name="twitter:description" content="现代化、高性能的 Clash 内核网页前端。Apple 设计语言 + Linear 风格动画。" />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0A84FF" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)" />
+
+    <!-- Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <title>Hyperion</title>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Hyperion",
+      "description": "现代化、高性能的 Clash 内核网页前端管理面板",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web Browser",
+      "programmingLanguage": "TypeScript",
+      "license": "MIT",
+      "version": "0.1.1-beta",
+      "author": {
+        "@type": "Organization",
+        "name": "Qing060325"
+      }
+    }
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,sans-serif;color:#333;">
+        <p>Hyperion 需要启用 JavaScript 才能运行。</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script src="/src/main.tsx" type="module"></script>
   </body>

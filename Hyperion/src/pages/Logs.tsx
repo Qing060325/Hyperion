@@ -41,7 +41,7 @@ export default function Logs() {
       const params = new URLSearchParams();
       if (token) params.set("token", token);
       if (level()) params.set("level", level());
-      ws = new WebSocket(`${clash.wsUrl().replace("/ws", "")}/logs?${params}`);
+      ws = new WebSocket(`${clash.wsUrl()}/logs?${params}`);
 
       ws.onmessage = (e) => {
         if (paused()) return;

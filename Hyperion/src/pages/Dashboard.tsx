@@ -17,26 +17,52 @@ export default function Dashboard() {
   let animFrame: number;
 
   onMount(async () => {
-    await clash.connect();
     if (clash.config()) setMode(clash.config()?.mode || "rule");
+    connectTrafficWs();
+    fetchMemory();
+    const memInterval = setInterval(fetchMemory, 3000);
+    onCleanup(() => {
+      clearInterval(memInterval);
+      if (trafficWs) trafficWs.close();
+    });
   });
 
-  // Poll memory/connections
-  createEffect(() => {
-    if (!clash.connected()) return;
-    const interval = setInterval(async () => {
-      try {
-        const base = clash.baseUrl();
-        const h = clash.headers();
-        const memRes = await fetch(`${base}/memory`, { headers: h });
-        if (memRes.ok) {
-          const d = await memRes.json();
-          setMemory(d.inuse || 0);
-        }
-      } catch {}
-    }, 3000);
-    onCleanup(() => clearInterval(interval));
-  });
+  // Fetch memory
+  const fetchMemory = async () => {
+    try {
+      const res = await fetch(`${clash.baseUrl()}/memory`, { headers: clash.headers() });
+      if (res.ok) {
+        const d = await res.json();
+        setMemory(d.inuse || 0);
+      }
+    } catch {}
+  };
+
+  // WebSocket traffic stream
+  let trafficWs: WebSocket | null = null;
+  const connectTrafficWs = () => {
+    try {
+      const token = clash.token();
+      const params = token ? `?token=${token}` : "";
+      trafficWs = new WebSocket(`${clash.wsUrl()}/traffic${params}`);
+      trafficWs.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          setUpSpeed(data.up || 0);
+          setDownSpeed(data.down || 0);
+          setTotalUp((prev) => prev + (data.up || 0));
+          setTotalDown((prev) => prev + (data.down || 0));
+          setTrafficHistory((prev) => {
+            const next = [...prev, { up: data.up || 0, down: data.down || 0 }];
+            return next.length > 180 ? next.slice(-180) : next;
+          });
+        } catch {}
+      };
+      trafficWs.onclose = () => {
+        setTimeout(connectTrafficWs, 3000);
+      };
+    } catch {}
+  };
 
   // Canvas chart
   createEffect(() => {

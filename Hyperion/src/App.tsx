@@ -1,5 +1,7 @@
-import { Route, Router, A } from "@solidjs/router";
+import { onMount } from "solid-js";
+import { Router, Route } from "@solidjs/router";
 import { useThemeStore } from "./stores/theme";
+import { useClashStore } from "./stores/clash";
 import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import Dashboard from "./pages/Dashboard";
@@ -14,6 +16,11 @@ import Settings from "./pages/Settings";
 
 export default function App() {
   useThemeStore();
+  const clash = useClashStore();
+
+  onMount(() => {
+    if (!clash.connected()) clash.connect();
+  });
 
   return (
     <Router root={Root}>

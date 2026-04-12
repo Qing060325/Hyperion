@@ -1,0 +1,59 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: H
+      - generic [ref=e7]: Hyperion
+    - generic [ref=e11]: 未连接
+    - navigation [ref=e12]:
+      - link "仪表盘" [ref=e13] [cursor=pointer]:
+        - /url: /
+        - img [ref=e14]
+        - generic [ref=e19]: 仪表盘
+      - link "代理" [ref=e20] [cursor=pointer]:
+        - /url: /proxies
+        - img [ref=e21]
+        - generic [ref=e24]: 代理
+      - link "连接" [ref=e25] [cursor=pointer]:
+        - /url: /connections
+        - img [ref=e26]
+        - generic [ref=e29]: 连接
+      - link "规则" [ref=e30] [cursor=pointer]:
+        - /url: /rules
+        - img [ref=e31]
+        - generic [ref=e33]: 规则
+      - link "日志" [ref=e34] [cursor=pointer]:
+        - /url: /logs
+        - img [ref=e35]
+        - generic [ref=e38]: 日志
+      - link "配置" [ref=e39] [cursor=pointer]:
+        - /url: /configs
+        - img [ref=e40]
+        - generic [ref=e43]: 配置
+      - link "DNS" [ref=e44] [cursor=pointer]:
+        - /url: /dns
+        - img [ref=e45]
+        - generic [ref=e48]: DNS
+      - link "订阅" [ref=e49] [cursor=pointer]:
+        - /url: /subscriptions
+        - img [ref=e50]
+        - generic [ref=e53]: 订阅
+    - generic [ref=e54]:
+      - button "跟随系统" [ref=e55]:
+        - img [ref=e57]
+        - generic [ref=e59]: 跟随系统
+      - button "收起侧栏" [ref=e60]:
+        - img [ref=e61]
+        - generic [ref=e63]: 收起侧栏
+      - generic [ref=e64]: v0.1.0-beta
+  - main [ref=e65]:
+    - generic [ref=e67]:
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - heading "代理" [level=1] [ref=e70]
+          - paragraph [ref=e71]: 管理代理节点和代理组
+        - button "全部测速" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - text: 全部测速
+      - generic [ref=e75]:
+        - img [ref=e76]
+        - textbox "搜索节点..." [ref=e79]

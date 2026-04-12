@@ -43,8 +43,8 @@ export default function Connections() {
     try {
       const token = clash.token();
       const params = token ? `?token=${token}` : "";
-      const wsBase = clash.wsUrl();
-      ws = new WebSocket(`${wsBase.replace("/ws", "")}/connections${params}`);
+      const wsBase = clash.wsUrl(); // e.g. ws://host/ws
+      ws = new WebSocket(`${clash.wsUrl()}/connections${params}`);
 
       ws.onmessage = (e) => {
         try {
