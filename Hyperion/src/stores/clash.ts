@@ -3,9 +3,10 @@ import type { ClashConnectionConfig, ClashConfig, ClashVersion } from "../types/
 
 export function createClashStore() {
   const [connection, setConnection] = createSignal<ClashConnectionConfig>({
-    host: "127.0.0.1",
-    port: 9090,
+    host: window.location.hostname,
+    port: parseInt(window.location.port) || 80,
     secret: "",
+    useProxy: true,
   });
 
   const [connected, setConnected] = createSignal(false);
@@ -14,11 +15,18 @@ export function createClashStore() {
 
   const baseUrl = () => {
     const conn = connection();
+    // 当 useProxy 为 true 时，通过 nginx 反代访问 Clash API
+    if (conn.useProxy) {
+      return `${window.location.origin}/api`;
+    }
     return `http://${conn.host}:${conn.port}`;
   };
 
   const wsUrl = () => {
     const conn = connection();
+    if (conn.useProxy) {
+      return `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
+    }
     return `ws://${conn.host}:${conn.port}`;
   };
 

@@ -226,6 +226,7 @@ export interface ClashConnectionConfig {
   host: string;
   port: number;
   secret?: string;
+  useProxy?: boolean;
 }
 
 // ==========================================
