@@ -1,61 +1,250 @@
-# Hyperion - Clash Meta 示例配置
-# 将你的订阅链接内容粘贴替换此文件
-# 或使用网页端"导入订阅"功能自动生成 proxy-provider 配置
-
 mixed-port: 7890
 allow-lan: true
-bind-address: "*"
+bind-address: '*'
 mode: rule
 log-level: info
 external-controller: 0.0.0.0:9090
-
+unified-delay: true
+tcp-concurrent: true
 dns:
-  enable: true
-  listen: 0.0.0.0:1053
-  enhanced-mode: fake-ip
-  nameserver:
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
-  fallback:
-    - https://1.1.1.1/dns-query
-    - https://dns.google/dns-query
-
-# ============================================
-# 代理订阅（使用网页端"导入订阅"功能自动添加）
-# 或在此手动配置
-# ============================================
-proxy-providers: {}
-
-proxies: []
-
+    enable: true
+    ipv6: false
+    default-nameserver: [223.5.5.5, 119.29.29.29]
+    enhanced-mode: fake-ip
+    fake-ip-range: 198.18.0.1/16
+    use-hosts: true
+    nameserver-policy: { +.google.com: 'https://dns.cloudflare.com/dns-query', +.googleapis.com: 'https://dns.cloudflare.com/dns-query', +.googleapis.cn: 'https://dns.cloudflare.com/dns-query', +.googlevideo.com: 'https://dns.cloudflare.com/dns-query', +.gstatic.com: 'https://dns.cloudflare.com/dns-query', +.youtube.com: 'https://dns.cloudflare.com/dns-query', +.youtu.be: 'https://dns.cloudflare.com/dns-query', +.facebook.com: 'https://dns.cloudflare.com/dns-query', +.twitter.com: 'https://dns.cloudflare.com/dns-query', +.x.com: 'https://dns.cloudflare.com/dns-query', +.github.com: 'https://dns.cloudflare.com/dns-query', +.githubusercontent.com: 'https://dns.cloudflare.com/dns-query', +.openai.com: 'https://dns.cloudflare.com/dns-query', +.chatgpt.com: 'https://dns.cloudflare.com/dns-query', +.anthropic.com: 'https://dns.cloudflare.com/dns-query' }
+    nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query', 'tls://dot.pub:853', 'tls://dns.alidns.com:853']
+    fallback: ['https://doh-pure.onedns.net/dns-query', 'https://ada.openbld.net/dns-query', 'https://223.5.5.5/dns-query', 'https://223.6.6.6/dns-query']
+    fallback-filter: { geoip: true, ipcidr: [240.0.0.0/4, 0.0.0.0/32] }
+    fake-ip-filter: ['*.lan', '*.local', '*.localhost', '*.test', localhost.ptlogin2.qq.com, '+.stun.*.*', '+.stun.*.*.*', '+.stun.*.*.*.*', lens.l.google.com, '*.srv.nintendo.net', +.stun.playstation.net, 'xbox.*.*.microsoft.com', '*.*.xboxlive.com', +.msftncsi.com, +.msftconnecttest.com]
+proxies:
+    - { name: '【重要】保存防失联网址https://www.stableproxy.net', type: vmess, server: v1hk5.stablenode.top, port: 24402, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: tcp }
+    - { name: '新加坡节点0301 | 1倍率', type: vmess, server: sg3.stableq.top, port: 24401, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /sg3-1 } }
+    - { name: '新加坡节点0302 | 1倍率', type: vmess, server: sg3.stableq.top, port: 24402, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /sg3-2 } }
+    - { name: '新加坡节点0303 | 1倍率', type: vmess, server: sg3.stableq.top, port: 24403, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /sg3-3 } }
+    - { name: '新加坡节点0304 | 1倍率', type: vmess, server: sg3.stableq.top, port: 24404, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /sg3-4 } }
+    - { name: '新加坡节点0305 | 1倍率', type: vmess, server: sg3.stableq.top, port: 24405, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /sg3-5 } }
+    - { name: '印度节点0208 | 2倍率', type: trojan, server: v1in2.stableq.top, port: 24408, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '日本节点0201 | 1倍率', type: vmess, server: v1jp2.stableq.top, port: 24401, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /jp2-1 } }
+    - { name: '美国节点0901 | 1倍率', type: trojan, server: us9.stableq.top, port: 24421, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '美国节点0902 | 1倍率', type: trojan, server: us9.stableq.top, port: 24422, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '美国节点0903 | 1倍率', type: trojan, server: us9.stableq.top, port: 24413, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '法国节点0204 | 1倍率', type: trojan, server: v3fr2.stableq.top, port: 24414, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '法国节点0205 | 1倍率', server: v3fr2.stableq.top, port: 44101, sni: v3fr2.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '英国节点0103 | 1倍率', type: trojan, server: uk1.stablenode.top, port: 24443, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '英国节点0104 | 1倍率', type: trojan, server: uk1.stablenode.top, port: 24444, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '芬兰节点0201 | 1倍率', type: vmess, server: v3fi2.stableq.top, port: 24421, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /fi2-1 } }
+    - { name: '芬兰节点0205 | 1倍率', type: vmess, server: v3fi2.stableq.top, port: 24425, uuid: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, alterId: 0, cipher: auto, udp: true, tls: true, skip-cert-verify: false, servername: null, network: ws, ws-opts: { path: /fi2-5 } }
+    - { name: '德国节点0406 | 1倍率', type: trojan, server: vde4.stableq.top, port: 24446, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, udp: true, skip-cert-verify: false, network: tcp }
+    - { name: '新加坡节点0601 | 1倍率', server: sg6.stableq.top, port: 45103, sni: sg6.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: 9noYJA0bODeBONED }
+    - { name: '新加坡节点0602 | 1倍率', server: sg6.stableq.top, port: 45203, sni: sg6.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: v3DkmNCkTvHQOenK }
+    - { name: '新加坡节点0603 | 1倍率', server: sg6.stableq.top, port: 45303, sni: sg6.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: v3DkmNCkTvHQOenK }
+    - { name: '香港节点3701 | 1倍率', server: hk37.stableq.top, port: 44103, sni: hk37.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3702 | 1倍率', server: hk37.stableq.top, port: 44201, sni: hk37.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3601 | 1倍率', server: v2hk36.stableq.top, port: 44106, sni: v2hk36.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: MWMyZWE0YjVmZTdiMDU3Zg== }
+    - { name: '香港节点3602 | 1倍率', server: v2hk36.stableq.top, port: 44206, sni: v2hk36.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: qONdAQegtpW7Z5Bz }
+    - { name: '香港节点3603 | 1倍率', server: v2hk36.stableq.top, port: 44306, sni: v2hk36.stableq.top, up: 200, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: RnnogKGDQJXn9ncS }
+    - { name: '香港节点3604 | 1倍率', server: v2hk36.stableq.top, port: 44406, sni: v2hk36.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf, obfs: salamander, obfs-password: kZfq0cOFaA527N4u }
+    - { name: '香港节点3001 | 1倍率', server: v6hk30.stableq.top, port: 44106, sni: v6hk30.stableq.top, up: 300, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3002 | 1倍率', server: v6hk30.stableq.top, port: 44206, sni: v6hk30.stableq.top, up: 200, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3003 | 1倍率', server: v6hk30.stableq.top, port: 44306, sni: v6hk30.stableq.top, up: 200, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3004 | 1倍率', server: v6hk30.stableq.top, port: 44406, sni: v6hk30.stableq.top, up: 200, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3005 | 1倍率', server: v6hk30.stableq.top, port: 44506, sni: v6hk30.stableq.top, up: 100, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3006 | 1倍率', server: v6hk30.stableq.top, port: 44607, sni: v6hk30.stableq.top, up: 200, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3007 | 1倍率', server: v6hk30.stableq.top, port: 44703, sni: v6hk30.stableq.top, up: 500, down: 200, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3008 | 1倍率', server: v6hk30.stableq.top, port: 44802, sni: v6hk30.stableq.top, up: 300, down: 800, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
+    - { name: '香港节点3009 | 1倍率', server: v6hk30.stableq.top, port: 44902, sni: v6hk30.stableq.top, up: 200, down: 500, skip-cert-verify: false, type: hysteria2, password: 1e7aaccc-0f93-4e80-9cc0-ba0536e7b9cf }
 proxy-groups:
-  - name: "PROXY"
-    type: select
-    proxies:
-      - DIRECT
-
+    - { name: 稳联云, type: select, proxies: [自动选择, 故障转移, DIRECT, '【重要】保存防失联网址https://www.stableproxy.net', '新加坡节点0301 | 1倍率', '新加坡节点0302 | 1倍率', '新加坡节点0303 | 1倍率', '新加坡节点0304 | 1倍率', '新加坡节点0305 | 1倍率', '印度节点0208 | 2倍率', '日本节点0201 | 1倍率', '美国节点0901 | 1倍率', '美国节点0902 | 1倍率', '美国节点0903 | 1倍率', '法国节点0204 | 1倍率', '法国节点0205 | 1倍率', '英国节点0103 | 1倍率', '英国节点0104 | 1倍率', '芬兰节点0201 | 1倍率', '芬兰节点0205 | 1倍率', '德国节点0406 | 1倍率', '新加坡节点0601 | 1倍率', '新加坡节点0602 | 1倍率', '新加坡节点0603 | 1倍率', '香港节点3701 | 1倍率', '香港节点3702 | 1倍率', '香港节点3601 | 1倍率', '香港节点3602 | 1倍率', '香港节点3603 | 1倍率', '香港节点3604 | 1倍率', '香港节点3001 | 1倍率', '香港节点3002 | 1倍率', '香港节点3003 | 1倍率', '香港节点3004 | 1倍率', '香港节点3005 | 1倍率', '香港节点3006 | 1倍率', '香港节点3007 | 1倍率', '香港节点3008 | 1倍率', '香港节点3009 | 1倍率'] }
+    - { name: 自动选择, type: url-test, proxies: ['【重要】保存防失联网址https://www.stableproxy.net', '新加坡节点0301 | 1倍率', '新加坡节点0302 | 1倍率', '新加坡节点0303 | 1倍率', '新加坡节点0304 | 1倍率', '新加坡节点0305 | 1倍率', '印度节点0208 | 2倍率', '日本节点0201 | 1倍率', '美国节点0901 | 1倍率', '美国节点0902 | 1倍率', '美国节点0903 | 1倍率', '法国节点0204 | 1倍率', '法国节点0205 | 1倍率', '英国节点0103 | 1倍率', '英国节点0104 | 1倍率', '芬兰节点0201 | 1倍率', '芬兰节点0205 | 1倍率', '德国节点0406 | 1倍率', '新加坡节点0601 | 1倍率', '新加坡节点0602 | 1倍率', '新加坡节点0603 | 1倍率', '香港节点3701 | 1倍率', '香港节点3702 | 1倍率', '香港节点3601 | 1倍率', '香港节点3602 | 1倍率', '香港节点3603 | 1倍率', '香港节点3604 | 1倍率', '香港节点3001 | 1倍率', '香港节点3002 | 1倍率', '香港节点3003 | 1倍率', '香港节点3004 | 1倍率', '香港节点3005 | 1倍率', '香港节点3006 | 1倍率', '香港节点3007 | 1倍率', '香港节点3008 | 1倍率', '香港节点3009 | 1倍率'], url: 'http://www.gstatic.com/generate_204', interval: 300, tolerance: 50 }
+    - { name: 故障转移, type: fallback, proxies: ['【重要】保存防失联网址https://www.stableproxy.net', '新加坡节点0301 | 1倍率', '新加坡节点0302 | 1倍率', '新加坡节点0303 | 1倍率', '新加坡节点0304 | 1倍率', '新加坡节点0305 | 1倍率', '印度节点0208 | 2倍率', '日本节点0201 | 1倍率', '美国节点0901 | 1倍率', '美国节点0902 | 1倍率', '美国节点0903 | 1倍率', '法国节点0204 | 1倍率', '法国节点0205 | 1倍率', '英国节点0103 | 1倍率', '英国节点0104 | 1倍率', '芬兰节点0201 | 1倍率', '芬兰节点0205 | 1倍率', '德国节点0406 | 1倍率', '新加坡节点0601 | 1倍率', '新加坡节点0602 | 1倍率', '新加坡节点0603 | 1倍率', '香港节点3701 | 1倍率', '香港节点3702 | 1倍率', '香港节点3601 | 1倍率', '香港节点3602 | 1倍率', '香港节点3603 | 1倍率', '香港节点3604 | 1倍率', '香港节点3001 | 1倍率', '香港节点3002 | 1倍率', '香港节点3003 | 1倍率', '香港节点3004 | 1倍率', '香港节点3005 | 1倍率', '香港节点3006 | 1倍率', '香港节点3007 | 1倍率', '香港节点3008 | 1倍率', '香港节点3009 | 1倍率'], url: 'http://www.gstatic.com/generate_204', interval: 300 }
 rules:
-  # 局域网
-  - IP-CIDR,192.168.0.0/16,DIRECT
-  - IP-CIDR,10.0.0.0/8,DIRECT
-  - IP-CIDR,172.16.0.0/12,DIRECT
-  - IP-CIDR,127.0.0.0/8,DIRECT
-
-  # 常见广告域名
-  - DOMAIN-SUFFIX,ads.google.com,REJECT
-  - DOMAIN-SUFFIX,adservice.google.com,REJECT
-
-  # 中国大陆直连
-  - GEOSITE,cn,DIRECT
-
-  # Telegram
-  - GEOSITE,telegram,PROXY
-
-  # Google
-  - GEOSITE,google,PROXY
-
-  # GitHub
-  - GEOSITE,github,PROXY
-
-  # 兜底
-  - MATCH,PROXY
+    - 'DOMAIN,freenode.stablenet.top,DIRECT'
+    - 'DOMAIN-KEYWORD,admarvel,REJECT'
+    - 'DOMAIN-KEYWORD,admaster,REJECT'
+    - 'DOMAIN-KEYWORD,adsage,REJECT'
+    - 'DOMAIN-KEYWORD,adsmogo,REJECT'
+    - 'DOMAIN-KEYWORD,adsrvmedia,REJECT'
+    - 'DOMAIN-KEYWORD,adwords,REJECT'
+    - 'DOMAIN-KEYWORD,adservice,REJECT'
+    - 'DOMAIN-KEYWORD,domob,REJECT'
+    - 'DOMAIN-KEYWORD,duomeng,REJECT'
+    - 'DOMAIN-KEYWORD,dwtrack,REJECT'
+    - 'DOMAIN-KEYWORD,guanggao,REJECT'
+    - 'DOMAIN-KEYWORD,lianmeng,REJECT'
+    - 'DOMAIN-KEYWORD,omgmta,REJECT'
+    - 'DOMAIN-KEYWORD,openx,REJECT'
+    - 'DOMAIN-KEYWORD,partnerad,REJECT'
+    - 'DOMAIN-KEYWORD,supersonicads,REJECT'
+    - 'DOMAIN-KEYWORD,umeng,REJECT'
+    - 'DOMAIN-KEYWORD,zjtoolbar,REJECT'
+    - 'DOMAIN-SUFFIX,appsflyer.com,REJECT'
+    - 'DOMAIN-SUFFIX,doubleclick.net,REJECT'
+    - 'DOMAIN-SUFFIX,mmstat.com,REJECT'
+    - 'DOMAIN-SUFFIX,local,DIRECT'
+    - 'DOMAIN-SUFFIX,localhost,DIRECT'
+    - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
+    - 'IP-CIDR,17.0.0.0/8,DIRECT,no-resolve'
+    - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'
+    - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'
+    - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
+    - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
+    - 'IP-CIDR,198.18.0.0/16,DIRECT,no-resolve'
+    - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'
+    - 'IP-CIDR6,::1/128,DIRECT,no-resolve'
+    - 'IP-CIDR6,fc00::/7,DIRECT,no-resolve'
+    - 'IP-CIDR6,fe80::/10,DIRECT,no-resolve'
+    - 'DOMAIN-SUFFIX,apps.apple.com,稳联云'
+    - 'DOMAIN-SUFFIX,itunes.apple.com,稳联云'
+    - 'DOMAIN-SUFFIX,blobstore.apple.com,稳联云'
+    - 'DOMAIN,safebrowsing.urlsec.qq.com,DIRECT'
+    - 'DOMAIN-SUFFIX,apple.com,DIRECT'
+    - 'DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT'
+    - 'DOMAIN-SUFFIX,icloud.com,DIRECT'
+    - 'DOMAIN-SUFFIX,icloud-content.com,DIRECT'
+    - 'DOMAIN-SUFFIX,mzstatic.com,DIRECT'
+    - 'DOMAIN-SUFFIX,aaplimg.com,DIRECT'
+    - 'DOMAIN-SUFFIX,cdn-apple.com,DIRECT'
+    - 'DOMAIN-SUFFIX,akadns.net,DIRECT'
+    - 'DOMAIN-KEYWORD,baidu,DIRECT'
+    - 'DOMAIN-KEYWORD,alibaba,DIRECT'
+    - 'DOMAIN-KEYWORD,alicdn,DIRECT'
+    - 'DOMAIN-KEYWORD,alipay,DIRECT'
+    - 'DOMAIN-KEYWORD,taobao,DIRECT'
+    - 'DOMAIN-KEYWORD,tencent,DIRECT'
+    - 'DOMAIN-KEYWORD,bilibili,DIRECT'
+    - 'DOMAIN-KEYWORD,weibo,DIRECT'
+    - 'DOMAIN-KEYWORD,douyin,DIRECT'
+    - 'DOMAIN-KEYWORD,bytedance,DIRECT'
+    - 'DOMAIN-KEYWORD,xiaomi,DIRECT'
+    - 'DOMAIN-KEYWORD,huawei,DIRECT'
+    - 'DOMAIN-KEYWORD,netease,DIRECT'
+    - 'DOMAIN-KEYWORD,meituan,DIRECT'
+    - 'DOMAIN-KEYWORD,pinduoduo,DIRECT'
+    - 'DOMAIN-KEYWORD,kuaishou,DIRECT'
+    - 'DOMAIN-KEYWORD,jingdong,DIRECT'
+    - 'DOMAIN-KEYWORD,officecdn,DIRECT'
+    - 'DOMAIN-SUFFIX,qq.com,DIRECT'
+    - 'DOMAIN-SUFFIX,weixin.com,DIRECT'
+    - 'DOMAIN-SUFFIX,wechat.com,DIRECT'
+    - 'DOMAIN-SUFFIX,gtimg.com,DIRECT'
+    - 'DOMAIN-SUFFIX,qcloud.com,DIRECT'
+    - 'DOMAIN-SUFFIX,myqcloud.com,DIRECT'
+    - 'DOMAIN-SUFFIX,qpic.cn,DIRECT'
+    - 'DOMAIN-SUFFIX,tenpay.com,DIRECT'
+    - 'DOMAIN-SUFFIX,tmall.com,DIRECT'
+    - 'DOMAIN-SUFFIX,jd.com,DIRECT'
+    - 'DOMAIN-SUFFIX,360buyimg.com,DIRECT'
+    - 'DOMAIN-SUFFIX,iqiyi.com,DIRECT'
+    - 'DOMAIN-SUFFIX,youku.com,DIRECT'
+    - 'DOMAIN-SUFFIX,ykimg.com,DIRECT'
+    - 'DOMAIN-SUFFIX,tudou.com,DIRECT'
+    - 'DOMAIN-SUFFIX,acfun.tv,DIRECT'
+    - 'DOMAIN-SUFFIX,hdslb.com,DIRECT'
+    - 'DOMAIN-SUFFIX,sohu.com,DIRECT'
+    - 'DOMAIN-SUFFIX,sogou.com,DIRECT'
+    - 'DOMAIN-SUFFIX,zhihu.com,DIRECT'
+    - 'DOMAIN-SUFFIX,zhimg.com,DIRECT'
+    - 'DOMAIN-SUFFIX,douban.com,DIRECT'
+    - 'DOMAIN-SUFFIX,doubanio.com,DIRECT'
+    - 'DOMAIN-SUFFIX,163.com,DIRECT'
+    - 'DOMAIN-SUFFIX,126.com,DIRECT'
+    - 'DOMAIN-SUFFIX,126.net,DIRECT'
+    - 'DOMAIN-SUFFIX,127.net,DIRECT'
+    - 'DOMAIN-SUFFIX,yeah.net,DIRECT'
+    - 'DOMAIN-SUFFIX,sina.com,DIRECT'
+    - 'DOMAIN-SUFFIX,sinaimg.cn,DIRECT'
+    - 'DOMAIN-SUFFIX,ximalaya.com,DIRECT'
+    - 'DOMAIN-SUFFIX,xmcdn.com,DIRECT'
+    - 'DOMAIN-SUFFIX,csdn.net,DIRECT'
+    - 'DOMAIN-SUFFIX,gitee.com,DIRECT'
+    - 'DOMAIN-SUFFIX,jianshu.com,DIRECT'
+    - 'DOMAIN-SUFFIX,cnblogs.com,DIRECT'
+    - 'DOMAIN-SUFFIX,oschina.net,DIRECT'
+    - 'DOMAIN-SUFFIX,ele.me,DIRECT'
+    - 'DOMAIN-SUFFIX,ctrip.com,DIRECT'
+    - 'DOMAIN-SUFFIX,suning.com,DIRECT'
+    - 'DOMAIN-SUFFIX,dianping.com,DIRECT'
+    - 'DOMAIN-SUFFIX,amap.com,DIRECT'
+    - 'DOMAIN-SUFFIX,autonavi.com,DIRECT'
+    - 'DOMAIN-SUFFIX,mi.com,DIRECT'
+    - 'DOMAIN-SUFFIX,miui.com,DIRECT'
+    - 'DOMAIN-SUFFIX,ifeng.com,DIRECT'
+    - 'DOMAIN-SUFFIX,youdao.com,DIRECT'
+    - 'DOMAIN-SUFFIX,iciba.com,DIRECT'
+    - 'DOMAIN-SUFFIX,xunlei.com,DIRECT'
+    - 'DOMAIN-SUFFIX,smzdm.com,DIRECT'
+    - 'DOMAIN-SUFFIX,sspai.com,DIRECT'
+    - 'DOMAIN-SUFFIX,36kr.com,DIRECT'
+    - 'DOMAIN-SUFFIX,speedtest.net,DIRECT'
+    - 'DOMAIN-SUFFIX,microsoft.com,DIRECT'
+    - 'DOMAIN-SUFFIX,microsoftonline.com,DIRECT'
+    - 'DOMAIN-SUFFIX,office.com,DIRECT'
+    - 'DOMAIN-SUFFIX,office365.com,DIRECT'
+    - 'DOMAIN-SUFFIX,windows.com,DIRECT'
+    - 'DOMAIN-SUFFIX,windowsupdate.com,DIRECT'
+    - 'DOMAIN-SUFFIX,live.com,DIRECT'
+    - 'DOMAIN-SUFFIX,msn.com,DIRECT'
+    - 'DOMAIN-SUFFIX,cn,DIRECT'
+    - 'DOMAIN-KEYWORD,-cn,DIRECT'
+    - 'DOMAIN-KEYWORD,google,稳联云'
+    - 'DOMAIN-KEYWORD,gmail,稳联云'
+    - 'DOMAIN-KEYWORD,youtube,稳联云'
+    - 'DOMAIN-KEYWORD,facebook,稳联云'
+    - 'DOMAIN-KEYWORD,twitter,稳联云'
+    - 'DOMAIN-KEYWORD,instagram,稳联云'
+    - 'DOMAIN-KEYWORD,whatsapp,稳联云'
+    - 'DOMAIN-KEYWORD,telegram,稳联云'
+    - 'DOMAIN-KEYWORD,github,稳联云'
+    - 'DOMAIN-KEYWORD,blogspot,稳联云'
+    - 'DOMAIN-KEYWORD,dropbox,稳联云'
+    - 'DOMAIN-KEYWORD,wikipedia,稳联云'
+    - 'DOMAIN-KEYWORD,pinterest,稳联云'
+    - 'DOMAIN-KEYWORD,discord,稳联云'
+    - 'DOMAIN-KEYWORD,openai,稳联云'
+    - 'DOMAIN-KEYWORD,anthropic,稳联云'
+    - 'DOMAIN-KEYWORD,netflix,稳联云'
+    - 'DOMAIN-KEYWORD,spotify,稳联云'
+    - 'DOMAIN-KEYWORD,amazon,稳联云'
+    - 'DOMAIN-SUFFIX,t.co,稳联云'
+    - 'DOMAIN-SUFFIX,x.com,稳联云'
+    - 'DOMAIN-SUFFIX,twimg.com,稳联云'
+    - 'DOMAIN-SUFFIX,fb.me,稳联云'
+    - 'DOMAIN-SUFFIX,fbcdn.net,稳联云'
+    - 'DOMAIN-SUFFIX,youtu.be,稳联云'
+    - 'DOMAIN-SUFFIX,ytimg.com,稳联云'
+    - 'DOMAIN-SUFFIX,gstatic.com,稳联云'
+    - 'DOMAIN-SUFFIX,ggpht.com,稳联云'
+    - 'DOMAIN-SUFFIX,googlevideo.com,稳联云'
+    - 'DOMAIN-SUFFIX,v2ex.com,稳联云'
+    - 'DOMAIN-SUFFIX,medium.com,稳联云'
+    - 'DOMAIN-SUFFIX,reddit.com,稳联云'
+    - 'DOMAIN-SUFFIX,redd.it,稳联云'
+    - 'DOMAIN-SUFFIX,imgur.com,稳联云'
+    - 'DOMAIN-SUFFIX,pixiv.net,稳联云'
+    - 'DOMAIN-SUFFIX,nytimes.com,稳联云'
+    - 'DOMAIN-SUFFIX,nyt.com,稳联云'
+    - 'DOMAIN-SUFFIX,bbc.com,稳联云'
+    - 'DOMAIN-SUFFIX,bbc.co.uk,稳联云'
+    - 'DOMAIN-SUFFIX,steamcommunity.com,稳联云'
+    - 'DOMAIN-SUFFIX,twitch.tv,稳联云'
+    - 'DOMAIN-SUFFIX,vimeo.com,稳联云'
+    - 'DOMAIN-SUFFIX,tumblr.com,稳联云'
+    - 'DOMAIN-SUFFIX,linkedin.com,稳联云'
+    - 'DOMAIN-SUFFIX,licdn.com,稳联云'
+    - 'DOMAIN-SUFFIX,mega.nz,稳联云'
+    - 'DOMAIN-SUFFIX,archive.org,稳联云'
+    - 'DOMAIN-SUFFIX,wikimedia.org,稳联云'
+    - 'DOMAIN-SUFFIX,soundcloud.com,稳联云'
+    - 'IP-CIDR,91.108.4.0/22,稳联云,no-resolve'
+    - 'IP-CIDR,91.108.8.0/21,稳联云,no-resolve'
+    - 'IP-CIDR,91.108.12.0/22,稳联云,no-resolve'
+    - 'IP-CIDR,91.108.16.0/22,稳联云,no-resolve'
+    - 'IP-CIDR,91.108.56.0/22,稳联云,no-resolve'
+    - 'IP-CIDR,149.154.160.0/20,稳联云,no-resolve'
+    - 'IP-CIDR6,2001:67c:4e8::/48,稳联云,no-resolve'
+    - 'IP-CIDR6,2001:b28:f23d::/48,稳联云,no-resolve'
+    - 'IP-CIDR6,2001:b28:f23f::/48,稳联云,no-resolve'
+    - 'GEOIP,CN,DIRECT'
+    - 'MATCH,稳联云'

@@ -4,9 +4,6 @@ services:
     container_name: hyperion
     ports:
       - "${PORT:-8080}:8080"
-    environment:
-      - CLASH_API_URL=http://clash:9090
-      - CLASH_WS_URL=http://clash:9090
     depends_on:
       clash:
         condition: service_healthy
@@ -15,10 +12,12 @@ services:
       - hyperion-net
 
   clash:
-    image: metacubex/mihomo:v1.19.0
+    build:
+      context: .
+      dockerfile: Dockerfile.hades
     container_name: hyperion-clash
     volumes:
-      - ./config:/root/.config/mihomo
+      - ./config:/root/.config/hades
     ports:
       - "${PROXY_PORT:-7890}:7890"
     cap_add:

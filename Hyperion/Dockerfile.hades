@@ -1,0 +1,26 @@
+FROM debian:bookworm-slim
+
+LABEL maintainer="Qing060325"
+LABEL description="Hades - 高性能代理内核"
+
+WORKDIR /app
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download Hades
+ARG HADES_VERSION=v0.1beta
+RUN wget -qO /usr/local/bin/hades "https://github.com/Qing060325/Hades/releases/download/${HADES_VERSION}/hades-linux-amd64" \
+    && chmod +x /usr/local/bin/hades
+
+# Create config dir
+RUN mkdir -p /root/.config/hades/providers
+
+EXPOSE 7890 9090
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=10s \
+  CMD wget -qO- http://localhost:9090/version > /dev/null || exit 1
+
+CMD ["hades", "-c", "/root/.config/hades/config.yaml"]

@@ -28,6 +28,8 @@ function getProtocolLabel(type: string) {
     WireGuard: "WG",
     Direct: "直连",
     Reject: "拒绝",
+    HTTP: "HTTP",
+    SOCKS5: "S5",
     Compatible: "兼容",
     Selector: "选择",
     URLTest: "自动",
@@ -37,6 +39,8 @@ function getProtocolLabel(type: string) {
   return map[type] || type;
 }
 
+const GROUP_TYPES = new Set(["Selector", "URLTest", "Fallback", "LoadBalance", "Compatible"]);
+
 export default function Proxies() {
   const clash = useClashStore();
   const [proxies, setProxies] = createSignal<Record<string, ClashProxy>>({});
@@ -45,17 +49,40 @@ export default function Proxies() {
   const [search, setSearch] = createSignal("");
   const [testing, setTesting] = createSignal(false);
   const [testingNode, setTestingNode] = createSignal<string | null>(null);
+  const [hasGroups, setHasGroups] = createSignal(true);
 
   const fetchProxies = async () => {
     try {
       const res = await fetch(`${clash.baseUrl()}/proxies`, { headers: clash.headers() });
       if (res.ok) {
         const data = await res.json();
-        setProxies(data.proxies);
-        const g = Object.values(data.proxies).filter(
+        setProxies(data.proxies || {});
+
+        // Detect proxy groups (Clash Meta style: has 'all' field)
+        const metaGroups = Object.values(data.proxies || {}).filter(
           (p: any) => p.all !== undefined || p.now !== undefined
         ) as ClashProxyGroup[];
-        setGroups(g);
+
+        if (metaGroups.length > 0) {
+          setGroups(metaGroups);
+          setHasGroups(true);
+        } else {
+          // Hades / minimal API: no groups, synthesize one from all nodes
+          setHasGroups(false);
+          const allEntries = Object.entries(data.proxies || {}).filter(
+            ([, v]: any) => v.type && !["Direct", "Reject"].includes(v.type)
+          );
+          if (allEntries.length > 0) {
+            const synthetic: ClashProxyGroup = {
+              name: "全部节点",
+              type: "Selector",
+              now: allEntries[0][0],
+              all: allEntries.map(([name]) => name),
+            };
+            setGroups([synthetic]);
+            setExpanded(new Set(["全部节点"]));
+          }
+        }
       }
     } catch {}
   };
@@ -105,6 +132,7 @@ export default function Proxies() {
         const params = new URLSearchParams({ timeout: "5000", url: "https://www.gstatic.com/generate_204" });
         const token = clash.token();
         if (token) params.set("token", token);
+        // Try Clash Meta group delay API
         await fetch(
           `${clash.baseUrl()}/group/${encodeURIComponent(group.name)}/delay?${params}`,
           { method: "GET" }
@@ -136,7 +164,12 @@ export default function Proxies() {
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">代理</h1>
-          <p class="text-sm text-base-content/50 mt-0.5">管理代理节点和代理组</p>
+          <p class="text-sm text-base-content/50 mt-0.5">
+            管理代理节点和代理组
+            <Show when={!hasGroups()}>
+              <span class="badge badge-warning badge-sm ml-2">兼容模式</span>
+            </Show>
+          </p>
         </div>
         <button
           class={`btn btn-primary btn-sm rounded-xl gap-1.5 ${testing() ? "loading" : ""}`}
@@ -165,7 +198,7 @@ export default function Proxies() {
           {(group, gi) => {
             const isExpanded = () => expanded().has(group.name);
             const nodes = () => getGroupNodes(group);
-            const isAuto = () => group.type === "URLTest" || group.type === "Fallback" || group.type === "LoadBalance";
+            const isAuto = () => ["URLTest", "Fallback", "LoadBalance"].includes(group.type);
 
             return (
               <div class="card bg-base-100 animate-card-in" style={{ "animation-delay": `${gi() * 60}ms` }}>
