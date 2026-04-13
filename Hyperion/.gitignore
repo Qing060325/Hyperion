@@ -33,3 +33,10 @@ src-tauri/Cargo.lock
 
 # Misc
 *.local
+.playwright-cli/
+test/
+*.db
+*.db-wal
+*.db-shm
+*.metadb
+*.dat
