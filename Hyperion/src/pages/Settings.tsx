@@ -1,7 +1,7 @@
 import { createSignal, createEffect, Show } from "solid-js";
 import { useThemeStore } from "@/stores/theme";
 import { useClashStore } from "@/stores/clash";
-import { Sun, Moon, Monitor, Check } from "lucide-solid";
+import { Sun, Moon, Monitor, Check, Link2, Unlink } from "lucide-solid";
 
 type Theme = "light" | "dark" | "system";
 
@@ -20,6 +20,10 @@ export default function Settings() {
   const [allowLan, setAllowLan] = createSignal(true);
   const [logLevel, setLogLevel] = createSignal("info");
 
+  const [useProxy, setUseProxy] = createSignal(clash.connection().useProxy);
+  const [saving, setSaving] = createSignal(false);
+  const [saveOk, setSaveOk] = createSignal(false);
+
   createEffect(() => {
     if (clash.config()) {
       setHost(clash.config()?.["external-controller"]?.split(":")[0] || "127.0.0.1");
@@ -27,8 +31,25 @@ export default function Settings() {
       setAllowLan(clash.config()?.["allow-lan"] || false);
       setLogLevel(clash.config()?.["log-level"] || "info");
       setSystemProxy(clash.config()?.tun?.enable || false);
+      setUseProxy(clash.connection().useProxy);
     }
   });
+
+  const saveConnection = async () => {
+    setSaving(true);
+    setSaveOk(false);
+    const ok = await clash.updateConnection({
+      host: host(),
+      port: port(),
+      secret: secret(),
+      useProxy: useProxy(),
+    });
+    setSaving(false);
+    if (ok) {
+      setSaveOk(true);
+      setTimeout(() => setSaveOk(false), 3000);
+    }
+  };
 
   const setMode = async (mode: string) => {
     try {
@@ -84,15 +105,33 @@ export default function Settings() {
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">连接</span>
         </div>
         <div class="divide-y divide-base-200/50">
-          <SettingRow label="API 地址">
-            <input class="input input-bordered input-sm w-36 rounded-xl" value={host()} onInput={(e) => setHost(e.currentTarget.value)} />
+          <SettingRow label="代理模式" desc={useProxy() ? "通过 Nginx 反代访问 Clash API" : "直连 Clash API（适用于 Termux / 本地运行）"}>
+            <label class="toggle toggle-sm toggle-primary">
+              <input type="checkbox" checked={useProxy()} onChange={() => setUseProxy(!useProxy())} />
+            </label>
           </SettingRow>
-          <SettingRow label="端口">
-            <input class="input input-bordered input-sm w-24 rounded-xl" type="number" value={port()} onInput={(e) => setPort(parseInt(e.currentTarget.value))} />
-          </SettingRow>
-          <SettingRow label="密钥">
-            <input class="input input-bordered input-sm w-48 rounded-xl" type="password" placeholder="可选" value={secret()} onInput={(e) => setSecret(e.currentTarget.value)} />
-          </SettingRow>
+          <Show when={!useProxy()}>
+            <SettingRow label="API 地址" desc="Clash external-controller 地址">
+              <input class="input input-bordered input-sm w-36 rounded-xl" value={host()} onInput={(e) => setHost(e.currentTarget.value)} />
+            </SettingRow>
+            <SettingRow label="端口">
+              <input class="input input-bordered input-sm w-24 rounded-xl" type="number" value={port()} onInput={(e) => setPort(parseInt(e.currentTarget.value))} />
+            </SettingRow>
+            <SettingRow label="密钥">
+              <input class="input input-bordered input-sm w-48 rounded-xl" type="password" placeholder="可选" value={secret()} onInput={(e) => setSecret(e.currentTarget.value)} />
+            </SettingRow>
+          </Show>
+          <div class="px-4 py-3">
+            <button
+              class={`btn btn-sm rounded-xl w-full gap-1.5 ${
+                saveOk() ? "btn-success" : "btn-primary"
+              } ${saving() ? "loading" : ""}`}
+              onClick={saveConnection}
+            >
+              {saveOk() ? <Check size={14} /> : <Link2 size={14} />}
+              {saveOk() ? "连接成功" : "保存并连接"}
+            </button>
+          </div>
         </div>
       </div>
 

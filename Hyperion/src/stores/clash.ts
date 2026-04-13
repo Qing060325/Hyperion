@@ -13,9 +13,23 @@ export function createClashStore() {
   const [version, setVersion] = createSignal<ClashVersion | null>(null);
   const [config, setConfig] = createSignal<ClashConfig | null>(null);
 
+  // Persist connection settings
+  const persistConnection = (conn: ClashConnectionConfig) => {
+    localStorage.setItem("hyperion-connection", JSON.stringify(conn));
+  };
+
+  const loadConnection = () => {
+    try {
+      const saved = localStorage.getItem("hyperion-connection");
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<ClashConnectionConfig>;
+        setConnection((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  };
+
   const baseUrl = () => {
     const conn = connection();
-    // 当 useProxy 为 true 时，通过 nginx 反代访问 Clash API
     if (conn.useProxy) {
       return `${window.location.origin}/api`;
     }
@@ -47,7 +61,6 @@ export function createClashStore() {
         setVersion(data);
         setConnected(true);
 
-        // Also fetch config
         const configRes = await fetch(`${baseUrl()}/configs`, {
           headers: headers(),
         });
@@ -65,6 +78,19 @@ export function createClashStore() {
     }
   };
 
+  // Update connection settings, persist, and reconnect
+  const updateConnection = async (updates: Partial<ClashConnectionConfig>) => {
+    const newConn = { ...connection(), ...updates };
+    setConnection(newConn);
+    persistConnection(newConn);
+    setConnected(false);
+    const ok = await connect();
+    return ok;
+  };
+
+  // Load saved settings on init
+  loadConnection();
+
   return {
     connection,
     setConnection,
@@ -79,10 +105,10 @@ export function createClashStore() {
     token,
     headers,
     connect,
+    updateConnection,
   };
 }
 
-// Singleton store
 let _clashStore: ReturnType<typeof createClashStore> | null = null;
 
 export function useClashStore() {
