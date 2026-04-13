@@ -1,0 +1,283 @@
+# Hyperion 示例配置文件
+# 版本: v0.3.0
+
+# ==========================================
+# 基础配置
+# ==========================================
+
+# 混合端口 (HTTP + SOCKS5)
+mixed-port: 7890
+
+# 允许局域网连接
+allow-lan: true
+
+# 绑定地址
+bind-address: "*"
+
+# 运行模式: rule / global / direct
+mode: rule
+
+# 日志级别: debug / info / warning / error / silent
+log-level: info
+
+# IPv6 支持
+ipv6: true
+
+# 外部控制器
+external-controller: 127.0.0.1:9090
+
+# API 密钥 (可选)
+# secret: "your-secret-key"
+
+# ==========================================
+# DNS 配置
+# ==========================================
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "*.localhost"
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  fallback:
+    - https://cloudflare-dns.com/dns-query
+    - https://dns.google/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+
+# ==========================================
+# TUN 配置 (系统级代理)
+# ==========================================
+
+tun:
+  enable: false
+  stack: gvisor
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  auto-route: true
+  auto-detect-interface: true
+
+# ==========================================
+# 代理配置
+# ==========================================
+
+proxies:
+  # SOCKS5 代理
+  - name: "SOCKS5-Example"
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+
+  # HTTP 代理
+  - name: "HTTP-Example"
+    type: http
+    server: 127.0.0.1
+    port: 8080
+
+  # Shadowsocks
+  - name: "SS-Example"
+    type: ss
+    server: server.example.com
+    port: 443
+    cipher: aes-256-gcm
+    password: "password"
+
+  # VMess
+  - name: "VMess-Example"
+    type: vmess
+    server: server.example.com
+    port: 443
+    uuid: your-uuid-here
+    alterId: 0
+    cipher: auto
+    tls: true
+    servername: example.com
+    network: ws
+    ws-opts:
+      path: /vmess
+
+  # VLESS
+  - name: "VLESS-Example"
+    type: vless
+    server: server.example.com
+    port: 443
+    uuid: your-uuid-here
+    flow: xtls-rprx-vision
+    tls: true
+    servername: example.com
+
+  # Trojan
+  - name: "Trojan-Example"
+    type: trojan
+    server: server.example.com
+    port: 443
+    password: your-password
+    sni: example.com
+
+  # Hysteria2
+  - name: "Hysteria2-Example"
+    type: hysteria2
+    server: server.example.com
+    port: 443
+    password: your-password
+
+# ==========================================
+# 代理组
+# ==========================================
+
+proxy-groups:
+  # 选择器组
+  - name: "Proxy"
+    type: select
+    proxies:
+      - Auto
+      - DIRECT
+      - SS-Example
+      - VMess-Example
+
+  # 自动选择组
+  - name: "Auto"
+    type: url-test
+    proxies:
+      - SS-Example
+      - VMess-Example
+      - VLESS-Example
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+
+  # 负载均衡组
+  - name: "LoadBalance"
+    type: load-balance
+    proxies:
+      - SS-Example
+      - VMess-Example
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+
+  # 回落组
+  - name: "Fallback"
+    type: fallback
+    proxies:
+      - VMess-Example
+      - SS-Example
+      - DIRECT
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+
+# ==========================================
+# 规则配置
+# ==========================================
+
+rules:
+  # 直连规则
+  - DOMAIN-SUFFIX,cn,Direct
+  - GEOIP,CN,Direct
+
+  # 代理规则
+  - DOMAIN-SUFFIX,google.com,Proxy
+  - DOMAIN-SUFFIX,googleapis.com,Proxy
+  - DOMAIN-SUFFIX,youtube.com,Proxy
+  - DOMAIN-SUFFIX,github.com,Proxy
+  - DOMAIN-SUFFIX,githubusercontent.com,Proxy
+
+  # 广告拦截
+  - DOMAIN-SUFFIX,ad.com,REJECT
+  - DOMAIN-KEYWORD,analytics,REJECT
+
+  # 规则集
+  - RULE-SET,cn-domain,Direct
+  - RULE-SET,cn-ip,Direct
+  - RULE-SET,proxy-domain,Proxy
+  - RULE-SET,reject,REJECT
+
+  # 最终规则
+  - MATCH,Proxy
+
+# ==========================================
+# 规则集配置
+# ==========================================
+
+rule-providers:
+  cn-domain:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/ruleset/direct.txt"
+    path: ./ruleset/cn-domain.yaml
+    interval: 86400
+
+  cn-ip:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/ruleset/cncidr.txt"
+    path: ./ruleset/cn-ip.yaml
+    interval: 86400
+
+  proxy-domain:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/ruleset/proxy.txt"
+    path: ./ruleset/proxy-domain.yaml
+    interval: 86400
+
+  reject:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/ruleset/reject.txt"
+    path: ./ruleset/reject.yaml
+    interval: 86400
+
+# ==========================================
+# 代理集配置
+# ==========================================
+
+proxy-providers:
+  MyProvider:
+    type: http
+    url: "https://example.com/subscribe"
+    interval: 3600
+    path: ./proxy-provider/my-provider.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: https://www.gstatic.com/generate_204
+
+# ==========================================
+# 脚本配置 (高级)
+# ==========================================
+
+script:
+  shortcuts:
+    quic: network == 'udp' and dst_port == 443
+
+# ==========================================
+# 实验性功能
+# ==========================================
+
+experimental:
+  # 缓存
+  cache:
+    enable: true
+    size: 1000
+
+  # Sniffer
+  sniffer:
+    enable: true
+    sniff:
+      HTTP:
+        ports: [80, 8080-8880]
+        override-destination: true
+      TLS:
+        ports: [443, 8443]
+      QUIC:
+        ports: [443, 8443]

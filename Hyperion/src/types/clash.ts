@@ -242,6 +242,10 @@ export interface HyperionSettings {
   proxy_log_level: string;
   log_max_files: number;
   proxy_guard: boolean;
+  // v0.3.0 新增
+  wizard_completed: boolean;
+  first_run: boolean;
+  auto_detect_clash: boolean;
 }
 
 export const DEFAULT_SETTINGS: HyperionSettings = {
@@ -253,4 +257,56 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   proxy_log_level: "info",
   log_max_files: 10,
   proxy_guard: false,
+  // v0.3.0 新增
+  wizard_completed: false,
+  first_run: true,
+  auto_detect_clash: true,
 };
+
+// ==========================================
+// Profile Types (v0.3.0)
+// ==========================================
+
+export interface Profile {
+  id: string;
+  name: string;
+  path: string;
+  type: 'local' | 'remote';
+  url?: string;
+  lastModified: string;
+  size: number;
+  active: boolean;
+}
+
+// ==========================================
+// Detection Types (v0.3.0)
+// ==========================================
+
+export interface ClashDetectionResult {
+  found: boolean;
+  path?: string;
+  version?: string;
+  meta?: boolean;
+  error?: string;
+}
+
+// ==========================================
+// Network Types (v0.3.0)
+// ==========================================
+
+export interface SystemProxyConfig {
+  enabled: boolean;
+  http: string;
+  https: string;
+  socks: string;
+  bypass: string[];
+}
+
+// ==========================================
+// Proxy Group Types (v0.3.0)
+// ==========================================
+
+export interface ProxyGroupOrder {
+  name: string;
+  proxies: string[];
+}

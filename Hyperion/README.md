@@ -4,14 +4,14 @@
 
 # Hyperion
 
-**Hyperion — 新一代 Clash 内核桌面前端**
+**Hyperion — 新一代 Clash 内核网页前端**
 
-基于 **SolidJS + Tauri 2.0 + TypeScript** 打造的高性能、现代化代理管理工具
+基于 **SolidJS + Vite + TypeScript** 打造的高性能、现代化代理管理工具
 
 [![Release](https://img.shields.io/github/v/release/Qing060325/Hyperion)](https://github.com/Qing060325/Hyperion/releases)
 [![License](https://img.shields.io/github/license/Qing060325/Hyperion)](LICENSE)
-[![SolidJS](https://img.shields.io/badge/SolidJS-2.9-2C4F7C)](https://www.solidjs.com/)
-[![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8D8)](https://v2.tauri.app/)
+[![SolidJS](https://img.shields.io/badge/SolidJS-1.9-2C4F7C)](https://www.solidjs.com/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF)](https://vitejs.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6)](https://www.typescriptlang.org/)
 
 ---
@@ -20,6 +20,23 @@
 
 > **Hyperion（海珀利昂）** — 取自希腊神话中的光明泰坦神，象征光芒与力量。
 > 以暗黑科技美学为设计语言，为 Clash 代理内核提供最极致的可视化管理体验。
+
+---
+
+## 🎉 v0.3.0 新功能
+
+| 功能 | 说明 |
+|------|------|
+| 🚀 **欢迎向导** | 首次启动引导，自动检测 Clash 内核，一键配置 |
+| 📝 **规则编辑器** | 可视化规则编辑，支持拖拽排序、批量导入导出 |
+| 🎯 **策略组拖拽** | 节点拖拽排序，可视化调整策略组顺序 |
+| 📁 **多配置管理** | 支持多配置文件切换、导入导出、远程更新 |
+| 🌐 **网络模式** | TUN 模式开关、系统代理配置 |
+| 🗺️ **连接详情** | IP 地理定位、连接详情面板、主动断开 |
+| 🔍 **日志过滤** | 多条件过滤、日志导出 (TXT/JSON/CSV) |
+| 🎨 **主题系统** | 多款内置主题，深色/浅色模式切换 |
+| ⌨️ **快捷键** | 全局快捷键系统，可自定义绑定 |
+| 🔔 **通知系统** | 连接错误、订阅到期、新版本通知 |
 
 ---
 

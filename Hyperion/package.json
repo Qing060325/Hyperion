@@ -1,7 +1,7 @@
 {
   "name": "hyperion",
   "private": true,
-  "version": "0.2.0-beta",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,9 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@solidjs/router": "^0.14.10",
     "lucide-solid": "^0.468.0",
-    "solid-js": "^1.9.3"
+    "solid-js": "^1.9.3",
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
