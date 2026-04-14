@@ -116,7 +116,8 @@ export class ClashWebSocketManager {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * this.reconnectAttempts;
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 30s)
+    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
 
     setTimeout(() => {
       if (useClashStore().connected()) {

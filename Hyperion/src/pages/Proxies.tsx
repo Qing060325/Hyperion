@@ -84,7 +84,7 @@ export default function Proxies() {
           }
         }
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   createEffect(() => {
@@ -106,7 +106,7 @@ export default function Proxies() {
         body: JSON.stringify({ name }),
       });
       fetchProxies();
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const testDelay = async (group: string, name: string) => {
@@ -119,7 +119,7 @@ export default function Proxies() {
         `${clash.baseUrl()}/proxies/${encodeURIComponent(name)}/delay?${params}`
       );
       setTimeout(fetchProxies, 500);
-    } catch {}
+    } catch (e) { console.error(e) }
     setTestingNode(null);
   };
 
@@ -137,7 +137,7 @@ export default function Proxies() {
           `${clash.baseUrl()}/group/${encodeURIComponent(group.name)}/delay?${params}`,
           { method: "GET" }
         );
-      } catch {}
+      } catch (e) { console.error(e) }
     }
     setTimeout(() => {
       fetchProxies();

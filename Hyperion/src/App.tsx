@@ -1,5 +1,5 @@
-import { onMount, Show, createEffect } from "solid-js";
-import { Router, Route } from "@solidjs/router";
+import { onMount, Show, createEffect, type ParentProps } from "solid-js";
+import { Router, Route, useNavigate } from "@solidjs/router";
 import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
 import { useSettingsStore } from "./stores/settings";
@@ -29,26 +29,6 @@ export default function App() {
     
     // Connect to Clash if configured
     if (!clash.connected()) clash.connect();
-
-    // Initialize hotkey service
-    import("./services/hotkeys").then(({ hotkeyService }) => {
-      // Register action handlers
-      hotkeyService.onAction('toggle-proxy', () => {
-        // Toggle system proxy
-      });
-      hotkeyService.onAction('reload-config', () => {
-        clash.reloadConfig();
-      });
-      hotkeyService.onAction('show-connections', () => {
-        window.location.hash = '/connections';
-      });
-      hotkeyService.onAction('show-proxies', () => {
-        window.location.hash = '/proxies';
-      });
-      hotkeyService.onAction('open-settings', () => {
-        window.location.hash = '/settings';
-      });
-    });
   });
 
   // Mark first run as complete after initial load
@@ -88,7 +68,20 @@ export default function App() {
   );
 }
 
-function Root(props: any) {
+function Root(props: ParentProps) {
+  // Initialize hotkey service inside Router context (has access to navigate)
+  onMount(() => {
+    const clash = useClashStore();
+    import("./services/hotkeys").then(({ hotkeyService }) => {
+      const navigate = useNavigate();
+      hotkeyService.onAction('toggle-proxy', () => {});
+      hotkeyService.onAction('reload-config', () => { clash.reloadConfig(); });
+      hotkeyService.onAction('show-connections', () => { navigate('/connections'); });
+      hotkeyService.onAction('show-proxies', () => { navigate('/proxies'); });
+      hotkeyService.onAction('open-settings', () => { navigate('/settings'); });
+    });
+  });
+
   return (
     <div class="app-layout bg-base-200">
       <Sidebar />

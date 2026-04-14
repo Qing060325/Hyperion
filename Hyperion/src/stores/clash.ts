@@ -25,7 +25,7 @@ export function createClashStore() {
         const parsed = JSON.parse(saved) as Partial<ClashConnectionConfig>;
         setConnection((prev) => ({ ...prev, ...parsed }));
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const baseUrl = () => {
@@ -72,7 +72,7 @@ export function createClashStore() {
       }
       setConnected(false);
       return false;
-    } catch {
+    } catch (e) { console.error(e) }
       setConnected(false);
       return false;
     }

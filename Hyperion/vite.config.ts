@@ -20,6 +20,8 @@ export default defineConfig({
     rollupOptions: {
       onwarn(warning, warn) {
         // suppress warnings about unresolved imports that vite handles
+        if (warning.code === 'UNRESOLVED_IMPORT') return;
+        warn(warning);
       },
     },
   },

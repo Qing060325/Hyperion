@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, XCircle, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { useClashWs } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
 
 interface Connection {
@@ -23,59 +24,35 @@ interface Connection {
 
 export default function Connections() {
   const clash = useClashStore();
+  const wsManager = useClashWs();
   const [connections, setConnections] = createSignal<Connection[]>([]);
   const [filter, setFilter] = createSignal("");
   const [sortKey, setSortKey] = createSignal<string>("");
   const [sortDir, setSortDir] = createSignal<1 | -1>(-1);
-  let ws: WebSocket | null = null;
-  let reconnectTimer: ReturnType<typeof setTimeout>;
 
   createEffect(() => {
     if (!clash.connected()) return;
-    connectWs();
-    return () => {
-      if (ws) ws.close();
-      clearTimeout(reconnectTimer);
-    };
+    wsManager.connectConnections((data) => {
+      if (data.connections) {
+        setConnections(
+          data.connections
+            .slice()
+            .map((c: Record<string, unknown>) => ({
+              ...c,
+              metadata: {
+                host: (c.metadata as Record<string, unknown>)?.host as string || (c.metadata as Record<string, unknown>)?.remoteDestination as string || "",
+                network: (c.metadata as Record<string, unknown>)?.network as string || "",
+                process: (c.metadata as Record<string, unknown>)?.process as string || "",
+                remoteDestination: (c.metadata as Record<string, unknown>)?.remoteDestination as string || "",
+                sni: (c.metadata as Record<string, unknown>)?.sni as string || "",
+                type: (c.metadata as Record<string, unknown>)?.type as string || "",
+              },
+            } as Connection))
+        );
+      }
+    });
+    return () => wsManager.disconnectConnections();
   });
-
-  const connectWs = () => {
-    try {
-      const token = clash.token();
-      const params = token ? `?token=${token}` : "";
-      const wsBase = clash.wsUrl(); // e.g. ws://host/ws
-      ws = new WebSocket(`${clash.wsUrl()}/connections${params}`);
-
-      ws.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.connections) {
-            setConnections(
-              data.connections
-                .slice()
-                .map((c: any) => ({
-                  ...c,
-                  metadata: {
-                    host: c.metadata?.host || c.metadata?.remoteDestination || "",
-                    network: c.metadata?.network || "",
-                    process: c.metadata?.process || "",
-                    remoteDestination: c.metadata?.remoteDestination || "",
-                    sni: c.metadata?.sni || "",
-                    type: c.metadata?.type || "",
-                  },
-                }))
-            );
-          }
-        } catch {}
-      };
-
-      ws.onclose = () => {
-        reconnectTimer = setTimeout(connectWs, 3000);
-      };
-    } catch {
-      reconnectTimer = setTimeout(connectWs, 3000);
-    }
-  };
 
   const closeAll = async () => {
     try {
@@ -83,7 +60,7 @@ export default function Connections() {
         method: "DELETE",
         headers: clash.headers(),
       });
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const closeOne = async (id: string) => {
@@ -92,7 +69,7 @@ export default function Connections() {
         method: "DELETE",
         headers: clash.headers(),
       });
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const filtered = () => {

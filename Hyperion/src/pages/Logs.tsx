@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { Search, Pause, Play, Trash2, ArrowDown } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { useClashWs } from "@/services/clash-ws";
 
 interface LogEntry {
   type: string;
@@ -16,55 +17,35 @@ const levelColors: Record<string, string> = {
 
 export default function Logs() {
   const clash = useClashStore();
+  const wsManager = useClashWs();
   const [logs, setLogs] = createSignal<LogEntry[]>([]);
   const [level, setLevel] = createSignal<string>("");
   const [search, setSearch] = createSignal("");
   const [paused, setPaused] = createSignal(false);
   const [autoScroll, setAutoScroll] = createSignal(true);
   const [maxLogs] = createSignal(500);
-  let ws: WebSocket | null = null;
   let logContainer: HTMLDivElement | undefined;
-  let reconnectTimer: ReturnType<typeof setTimeout>;
 
   createEffect(() => {
     if (!clash.connected()) return;
     connectWs();
-    return () => {
-      if (ws) ws.close();
-      clearTimeout(reconnectTimer);
-    };
+    return () => wsManager.disconnectLogs();
   });
 
   const connectWs = () => {
-    try {
-      const token = clash.token();
-      const params = new URLSearchParams();
-      if (token) params.set("token", token);
-      if (level()) params.set("level", level());
-      ws = new WebSocket(`${clash.wsUrl()}/logs?${params}`);
-
-      ws.onmessage = (e) => {
-        if (paused()) return;
-        try {
-          const data = JSON.parse(e.data) as LogEntry;
-          setLogs((prev) => {
-            const next = [...prev, data];
-            return next.length > maxLogs() ? next.slice(-maxLogs()) : next;
-          });
-          if (autoScroll() && logContainer) {
-            requestAnimationFrame(() => {
-              if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
-            });
-          }
-        } catch {}
-      };
-
-      ws.onclose = () => {
-        reconnectTimer = setTimeout(connectWs, 3000);
-      };
-    } catch {
-      reconnectTimer = setTimeout(connectWs, 3000);
-    }
+    wsManager.connectLogs(level(), (data) => {
+      if (paused()) return;
+      const entry = data as LogEntry;
+      setLogs((prev) => {
+        const next = [...prev, entry];
+        return next.length > maxLogs() ? next.slice(-maxLogs()) : next;
+      });
+      if (autoScroll() && logContainer) {
+        requestAnimationFrame(() => {
+          if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+        });
+      }
+    });
   };
 
   const filtered = () => {
@@ -89,7 +70,7 @@ export default function Logs() {
               onClick={() => {
                 setLevel(l);
                 setLogs([]);
-                if (ws) ws.close();
+                wsManager.disconnectLogs();
                 connectWs();
               }}
             >

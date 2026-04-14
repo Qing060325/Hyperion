@@ -49,7 +49,7 @@ export default function Subscriptions() {
         const entries = Object.entries(data.providers || {}) as [string, Provider][];
         setProviders(entries.filter(([, v]) => v.type === "HTTP" || v.type === "File"));
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   createEffect(() => {
@@ -64,7 +64,7 @@ export default function Subscriptions() {
         headers: clash.headers(),
       });
       setTimeout(fetchProviders, 1500);
-    } catch {}
+    } catch (e) { console.error(e) }
     setUpdating(null);
   };
 

@@ -5,6 +5,7 @@
 import { For, Show } from "solid-js";
 import type { RuleType, RuleTypeCategory } from "../../types/rule-editor";
 import { RULE_TYPES, getRuleTypesByCategory, getRuleTypeMeta } from "../../types/rule-editor";
+import type { Component } from "solid-js";
 import { Globe, Server, MapPin, Cpu, Plug, GitBranch, MoreHorizontal } from "lucide-solid";
 
 interface RuleTypeSelectorProps {
@@ -12,7 +13,7 @@ interface RuleTypeSelectorProps {
   onChange: (type: RuleType) => void;
 }
 
-const CATEGORY_ICONS: Record<RuleTypeCategory, any> = {
+const CATEGORY_ICONS: Record<RuleTypeCategory, Component<{ class?: string }>> = {
   domain: Globe,
   ip: Server,
   geo: MapPin,

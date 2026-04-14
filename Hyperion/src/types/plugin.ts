@@ -26,8 +26,8 @@ export interface PluginSetting {
   type: 'text' | 'number' | 'boolean' | 'select' | 'color';
   label: string;
   description?: string;
-  default: any;
-  options?: { label: string; value: any }[];
+  default: string | number | boolean;
+  options?: { label: string; value: string | number }[];
   min?: number;
   max?: number;
 }
@@ -59,7 +59,7 @@ export interface HyperionPlugin {
   /** Lifecycle hooks */
   onLoad?: (api: PluginAPI) => Promise<void>;
   onUnload?: () => Promise<void>;
-  onConfigChange?: (config: any) => void;
+  onConfigChange?: (config: Record<string, unknown>) => void;
   
   /** Extension capabilities */
   routes?: PluginRoute[];
@@ -73,12 +73,12 @@ export interface HyperionPlugin {
 /** Plugin API interface */
 export interface PluginAPI {
   /** State access */
-  getStore: () => any;
-  getSettings: () => any;
-  getTheme: () => any;
+  getStore: () => Record<string, unknown>;
+  getSettings: () => Record<string, unknown>;
+  getTheme: () => Record<string, unknown>;
   
   /** API calls */
-  callApi: <T>(method: string, path: string, body?: any) => Promise<T>;
+  callApi: <T>(method: string, path: string, body?: Record<string, unknown>) => Promise<T>;
   
   /** UI extension */
   addNavItem: (item: NavItem) => void;
@@ -87,17 +87,17 @@ export interface PluginAPI {
   removeSettingSection: (id: string) => void;
   
   /** Event subscription */
-  on: (event: PluginEvent, handler: Function) => void;
-  off: (event: PluginEvent, handler: Function) => void;
-  emit: (event: PluginEvent, data?: any) => void;
+  on: (event: PluginEvent, handler: (...args: unknown[]) => void) => void;
+  off: (event: PluginEvent, handler: (...args: unknown[]) => void) => void;
+  emit: (event: PluginEvent, data?: unknown) => void;
   
   /** Notifications */
   showNotification: (title: string, body: string) => void;
   showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   
   /** Storage */
-  getStorage: (key: string) => any;
-  setStorage: (key: string, value: any) => void;
+  getStorage: (key: string) => string | null;
+  setStorage: (key: string, value: string) => void;
 }
 
 /** Navigation item for plugin */

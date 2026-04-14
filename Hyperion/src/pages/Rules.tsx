@@ -37,7 +37,7 @@ export default function Rules() {
         const data = await res.json();
         setRules(data.rules || []);
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   createEffect(() => {

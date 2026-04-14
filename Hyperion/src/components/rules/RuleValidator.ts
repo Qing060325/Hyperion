@@ -2,7 +2,7 @@
 // RuleValidator - Rule Validation Utilities
 // ==========================================
 
-import type { RuleFormData, RuleValidationResult } from "../../types/rule-editor";
+import type { RuleFormData, RuleValidationResult, RuleType } from "../../types/rule-editor";
 import { RULE_TYPES } from "../../types/rule-editor";
 
 /**
@@ -144,7 +144,7 @@ export function parseRuleString(line: string): RuleFormData | null {
     
     return {
       id: `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: type as any,
+      type: type as RuleType,
       payload,
       proxy,
       noResolve: rest.includes('no-resolve'),

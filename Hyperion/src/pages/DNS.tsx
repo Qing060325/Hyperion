@@ -27,7 +27,7 @@ export default function DNS() {
       if (token) params.set("token", token);
       const res = await fetch(`${clash.baseUrl()}/dns/query?${params}`, { headers: clash.headers() });
       if (res.ok) setResults(await res.json());
-    } catch {}
+    } catch (e) { console.error(e) }
     setLoading(false);
   };
 
@@ -38,14 +38,14 @@ export default function DNS() {
         const data = await res.json();
         setFakeIPCount(data.count || 0);
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const flushFakeIP = async () => {
     try {
       await fetch(`${clash.baseUrl()}/cache/fakeip/flush`, { method: "POST", headers: clash.headers() });
       setFakeIPCount(0);
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   fetchFakeIP();

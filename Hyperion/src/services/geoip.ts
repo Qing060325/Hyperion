@@ -39,7 +39,7 @@ class GeoIPService {
 
     try {
       // Use ip-api.com (free, no API key needed)
-      const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,region,city,isp,org,as,lat,lon,timezone,query`);
+      const response = await fetch(`https://ip-api.com/json/${ip}?fields=status,country,countryCode,region,city,isp,org,as,lat,lon,timezone,query`);
       
       if (!response.ok) {
         return null;

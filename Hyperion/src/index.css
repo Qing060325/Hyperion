@@ -462,6 +462,10 @@ body {
   background-color: rgba(255, 214, 10, 0.12);
   color: var(--color-delay-moderate);
 }
+.delay-badge-bad {
+  background-color: rgba(255, 149, 0, 0.12);
+  color: var(--color-delay-moderate);
+}
 .delay-badge-poor {
   background-color: rgba(255, 69, 58, 0.12);
   color: var(--color-delay-poor);

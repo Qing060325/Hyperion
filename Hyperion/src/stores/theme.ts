@@ -1,4 +1,4 @@
-import { createSignal, createEffect } from "solid-js";
+import { createSignal, createEffect, onMount } from "solid-js";
 import { Moon, Sun, Monitor } from "lucide-solid";
 
 type Theme = "light" | "dark" | "system";
@@ -34,12 +34,14 @@ function createThemeStore() {
 
   createEffect(() => {
     apply(theme());
+  });
+
+  onMount(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
       if (theme() === "system") apply("system");
     };
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
   });
 
   return { theme, resolved, change };

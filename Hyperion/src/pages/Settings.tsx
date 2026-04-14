@@ -58,7 +58,7 @@ export default function Settings() {
         headers: clash.headers(),
         body: JSON.stringify({ mode }),
       });
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const themeOptions: { value: Theme; label: string; icon: any }[] = [
@@ -218,7 +218,7 @@ export default function Settings() {
         </div>
         <div class="divide-y divide-base-200/50">
           <SettingRow label="Hyperion 版本">
-            <span class="badge badge-sm badge-ghost font-mono">v0.2.0-beta</span>
+            <span class="badge badge-sm badge-ghost font-mono">v0.3.0</span>
           </SettingRow>
           <SettingRow label="Clash Meta 版本">
             <span class="badge badge-sm badge-ghost font-mono">{clash.version()?.version || "-"}</span>

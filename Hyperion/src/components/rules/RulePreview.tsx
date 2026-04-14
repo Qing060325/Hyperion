@@ -27,9 +27,13 @@ export default function RulePreview(props: RulePreviewProps) {
   };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(yaml());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(yaml());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy to clipboard:", e);
+    }
   };
 
   const handleDownload = () => {

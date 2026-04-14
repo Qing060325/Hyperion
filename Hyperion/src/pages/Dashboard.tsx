@@ -1,10 +1,12 @@
 import { createSignal, createEffect, onMount, onCleanup, For } from "solid-js";
 import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { useClashWs } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
 
 export default function Dashboard() {
   const clash = useClashStore();
+  const wsManager = useClashWs();
   const [upSpeed, setUpSpeed] = createSignal(0);
   const [downSpeed, setDownSpeed] = createSignal(0);
   const [totalUp, setTotalUp] = createSignal(0);
@@ -23,7 +25,7 @@ export default function Dashboard() {
     const memInterval = setInterval(fetchMemory, 3000);
     onCleanup(() => {
       clearInterval(memInterval);
-      if (trafficWs) trafficWs.close();
+      wsManager.disconnectTraffic();
     });
   });
 
@@ -35,33 +37,21 @@ export default function Dashboard() {
         const d = await res.json();
         setMemory(d.inuse || 0);
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   // WebSocket traffic stream
-  let trafficWs: WebSocket | null = null;
   const connectTrafficWs = () => {
-    try {
-      const token = clash.token();
-      const params = token ? `?token=${token}` : "";
-      trafficWs = new WebSocket(`${clash.wsUrl()}/traffic${params}`);
-      trafficWs.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          setUpSpeed(data.up || 0);
-          setDownSpeed(data.down || 0);
-          setTotalUp((prev) => prev + (data.up || 0));
-          setTotalDown((prev) => prev + (data.down || 0));
-          setTrafficHistory((prev) => {
-            const next = [...prev, { up: data.up || 0, down: data.down || 0 }];
-            return next.length > 180 ? next.slice(-180) : next;
-          });
-        } catch {}
-      };
-      trafficWs.onclose = () => {
-        setTimeout(connectTrafficWs, 3000);
-      };
-    } catch {}
+    wsManager.connectTraffic((data) => {
+      setUpSpeed(data.up || 0);
+      setDownSpeed(data.down || 0);
+      setTotalUp((prev) => prev + (data.up || 0));
+      setTotalDown((prev) => prev + (data.down || 0));
+      setTrafficHistory((prev) => {
+        const next = [...prev, { up: data.up || 0, down: data.down || 0 }];
+        return next.length > 180 ? next.slice(-180) : next;
+      });
+    });
   };
 
   // Canvas chart
@@ -156,7 +146,7 @@ export default function Dashboard() {
         body: JSON.stringify({ mode: m }),
       });
       setMode(m);
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   return (

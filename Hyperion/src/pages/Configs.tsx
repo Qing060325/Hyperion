@@ -2,17 +2,36 @@ import { createSignal, createEffect, For, Show } from "solid-js";
 import { RefreshCw, MapPin, Database, RotateCcw } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 
+interface ClashConfigData {
+  "mixed-port"?: number;
+  port?: number;
+  "socks-port"?: number;
+  mode?: string;
+  "log-level"?: string;
+  "allow-lan"?: boolean;
+  tun?: { enable?: boolean };
+  ipv6?: boolean;
+  [key: string]: unknown;
+}
+
+interface ProxyProvider {
+  name: string;
+  vehicleType: string;
+  type: string;
+  updatedAt?: string;
+}
+
 export default function Configs() {
   const clash = useClashStore();
-  const [config, setConfig] = createSignal<any>(null);
-  const [providers, setProviders] = createSignal<any[]>([]);
+  const [config, setConfig] = createSignal<ClashConfigData | null>(null);
+  const [providers, setProviders] = createSignal<ProxyProvider[]>([]);
   const [loading, setLoading] = createSignal<string | null>(null);
 
   const fetchConfig = async () => {
     try {
       const res = await fetch(`${clash.baseUrl()}/configs`, { headers: clash.headers() });
       if (res.ok) setConfig(await res.json());
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const fetchProviders = async () => {
@@ -22,7 +41,7 @@ export default function Configs() {
         const data = await res.json();
         setProviders(data.providers || []);
       }
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   createEffect(() => {
@@ -62,7 +81,7 @@ export default function Configs() {
         headers: clash.headers(),
       });
       setTimeout(fetchProviders, 1000);
-    } catch {}
+    } catch (e) { console.error(e) }
   };
 
   const actions = [
