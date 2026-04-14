@@ -6,6 +6,7 @@ import { createSignal, Show } from "solid-js";
 import { X, Upload, Link, FileText, Loader2 } from "lucide-solid";
 import type { Profile } from "../../types/clash";
 import { profileManager } from "../../services/profile-manager";
+import ripple from "@/components/ui/RippleEffect";
 
 interface ProfileImporterProps {
   type: 'local' | 'url';
@@ -69,8 +70,8 @@ export default function ProfileImporter(props: ProfileImporterProps) {
   };
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/80 backdrop-blur-sm">
-      <div class="card bg-base-100 shadow-xl w-full max-w-md mx-4">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/80 backdrop-blur-sm animate-modal-backdrop">
+      <div class="card bg-base-100 shadow-xl w-full max-w-md mx-4 animate-modal-content">
         <div class="card-body">
           {/* Header */}
           <div class="flex items-center justify-between mb-4">
@@ -87,7 +88,7 @@ export default function ProfileImporter(props: ProfileImporterProps) {
                 </>
               )}
             </h3>
-            <button class="btn btn-ghost btn-sm btn-circle" onClick={props.onClose}>
+            <button use:ripple class="btn btn-ghost btn-sm btn-circle" onClick={props.onClose}>
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -117,7 +118,7 @@ export default function ProfileImporter(props: ProfileImporterProps) {
               <FileText class="w-12 h-12 mx-auto mb-3 text-base-content/50" />
               <p class="mb-3 text-base-content/70">拖拽配置文件到此处</p>
               <p class="text-sm text-base-content/50 mb-3">或</p>
-              <label class="btn btn-primary">
+              <label use:ripple class="btn btn-primary">
                 选择文件
                 <input
                   type="file"
@@ -162,6 +163,7 @@ export default function ProfileImporter(props: ProfileImporterProps) {
               </div>
 
               <button
+                use:ripple
                 class="btn btn-primary btn-block"
                 onClick={handleUrlImport}
                 disabled={loading()}

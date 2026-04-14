@@ -5,6 +5,7 @@
 import { For, Show, createSignal } from "solid-js";
 import { Plus, Upload, Link, MoreVertical, Check, Trash2, Edit3, Download, RefreshCw } from "lucide-solid";
 import type { Profile } from "../../types/clash";
+import ripple from "@/components/ui/RippleEffect";
 
 interface ProfileListProps {
   profiles: Profile[];
@@ -41,11 +42,11 @@ export default function ProfileList(props: ProfileListProps) {
     <div>
       {/* Actions */}
       <div class="flex gap-2 mb-4">
-        <button class="btn btn-primary btn-sm gap-1" onClick={props.onImport}>
+        <button use:ripple class="btn btn-primary btn-sm gap-1" onClick={props.onImport}>
           <Plus class="w-4 h-4" />
           添加本地配置
         </button>
-        <button class="btn btn-outline btn-sm gap-1" onClick={props.onImportUrl}>
+        <button use:ripple class="btn btn-outline btn-sm gap-1" onClick={props.onImportUrl}>
           <Link class="w-4 h-4" />
           从 URL 导入
         </button>
@@ -60,7 +61,7 @@ export default function ProfileList(props: ProfileListProps) {
             return (
               <div
                 classList={{
-                  'card bg-base-200 border cursor-pointer transition-all': true,
+                  'card bg-base-200 border cursor-pointer transition-all animate-card-spring': true,
                   'border-primary ring-1 ring-primary/20': isActive(),
                   'border-base-300 hover:border-primary/50': !isActive(),
                 }}

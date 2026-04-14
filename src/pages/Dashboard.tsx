@@ -4,6 +4,8 @@ import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe, GripVertical } f
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
+import AnimatedCounter from "@/components/ui/AnimatedCounter";
+import ripple from "@/components/ui/RippleEffect";
 
 const LAYOUT_KEY = "hyperion-dashboard-layout";
 
@@ -211,47 +213,55 @@ export default function Dashboard() {
   // 卡片渲染映射
   const cardRenderers: Record<CardId, () => JSX.Element> = {
     upload: () => (
-      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+      <div class="stat-card card bg-base-100 p-4 animate-card-spring">
         <div class="flex items-center gap-2 text-base-content/50 mb-2">
           <ArrowUp size={16} class="text-success" />
           <span class="text-xs font-medium">上传速率</span>
         </div>
-        <div class="text-2xl font-bold tracking-tight">{formatSpeed(upSpeed())}</div>
+        <div class="text-2xl font-bold tracking-tight">
+          <AnimatedCounter value={upSpeed()} format={formatSpeed} />
+        </div>
         <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalUp())}</div>
       </div>
     ),
     download: () => (
-      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+      <div class="stat-card card bg-base-100 p-4 animate-card-spring">
         <div class="flex items-center gap-2 text-base-content/50 mb-2">
           <ArrowDown size={16} class="text-primary" />
           <span class="text-xs font-medium">下载速率</span>
         </div>
-        <div class="text-2xl font-bold tracking-tight">{formatSpeed(downSpeed())}</div>
+        <div class="text-2xl font-bold tracking-tight">
+          <AnimatedCounter value={downSpeed()} format={formatSpeed} />
+        </div>
         <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalDown())}</div>
       </div>
     ),
     connections: () => (
-      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+      <div class="stat-card card bg-base-100 p-4 animate-card-spring">
         <div class="flex items-center gap-2 text-base-content/50 mb-2">
           <Activity size={16} class="text-orange-500" />
           <span class="text-xs font-medium">活跃连接</span>
         </div>
-        <div class="text-2xl font-bold tracking-tight">{connCount()}</div>
+        <div class="text-2xl font-bold tracking-tight">
+          <AnimatedCounter value={connCount()} />
+        </div>
         <div class="text-xs text-base-content/40 mt-1">实时连接数</div>
       </div>
     ),
     memory: () => (
-      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+      <div class="stat-card card bg-base-100 p-4 animate-card-spring">
         <div class="flex items-center gap-2 text-base-content/50 mb-2">
           <Cpu size={16} class="text-purple-500" />
           <span class="text-xs font-medium">内存使用</span>
         </div>
-        <div class="text-2xl font-bold tracking-tight">{formatBytes(memory())}</div>
+        <div class="text-2xl font-bold tracking-tight">
+          <AnimatedCounter value={memory()} format={formatBytes} />
+        </div>
         <div class="text-xs text-base-content/40 mt-1">Hades</div>
       </div>
     ),
     chart: () => (
-      <div class="card bg-base-100 animate-card-in col-span-2 lg:col-span-4">
+      <div class="card bg-base-100 animate-card-spring col-span-2 lg:col-span-4">
         <div class="flex items-center justify-between p-4 border-b border-base-300">
           <span class="font-medium text-sm">流量趋势</span>
           <div class="flex items-center gap-3 text-xs text-base-content/50">
@@ -271,7 +281,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between">
         <div>
@@ -294,6 +304,7 @@ export default function Dashboard() {
       <div class="flex gap-2">
         {(["rule", "global", "direct"] as const).map((m) => (
           <button
+            use:ripple
             onClick={() => switchMode(m)}
             class={`btn btn-sm rounded-xl ${
               mode() === m ? "btn-primary" : "btn-ghost"

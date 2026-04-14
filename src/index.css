@@ -62,6 +62,25 @@
   /* Sidebar */
   --sidebar-width: 256px;
   --sidebar-collapsed: 72px;
+
+  /* Enhanced animation curves */
+  --ease-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Ripple */
+  --ripple-color: rgba(0, 122, 255, 0.3);
+  --ripple-duration: 600ms;
+
+  /* Glow */
+  --glow-primary: 0 0 20px rgba(0, 122, 255, 0.3);
+  --glow-success: 0 0 20px rgba(52, 199, 89, 0.3);
+  --glow-error: 0 0 20px rgba(255, 59, 48, 0.3);
+
+  /* Gradient accents */
+  --gradient-primary: linear-gradient(135deg, #007AFF, #5856D6);
+  --gradient-success: linear-gradient(135deg, #34C759, #30D158);
+  --gradient-sakura: linear-gradient(135deg, #FFB7C5, #FF69B4);
 }
 
 /* ==========================================
@@ -225,6 +244,124 @@ body {
   100% { opacity: 1; }
 }
 
+/* Page transitions - richer enter */
+@keyframes pageInEnhanced {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* Card spring entrance */
+@keyframes cardSpringIn {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.95); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.02); }
+  80%  { transform: translateY(2px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Ripple expansion */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* Button glow pulse on hover */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 122, 255, 0.2); }
+  50%      { box-shadow: 0 0 20px rgba(0, 122, 255, 0.4); }
+}
+
+/* Success flash */
+@keyframes successFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(52, 199, 89, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
+}
+
+/* Error shake */
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* List item stagger entrance */
+@keyframes listItemIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* List item delete slide-out */
+@keyframes listItemOut {
+  to { opacity: 0; transform: translateX(30px) scale(0.95); height: 0; padding: 0; margin: 0; overflow: hidden; }
+}
+
+/* Modal backdrop fade */
+@keyframes modalBackdropIn {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+/* Modal content spring slide-up */
+@keyframes modalContentIn {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.95); }
+  60%  { opacity: 1; transform: translateY(-5px) scale(1.01); }
+  80%  { transform: translateY(2px) scale(0.995); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Toggle thumb slide with glow */
+@keyframes toggleGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+  50%  { box-shadow: 0 0 12px 4px rgba(0, 122, 255, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+}
+
+/* Sidebar active indicator slide */
+@keyframes indicatorSlide {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Number counter roll */
+@keyframes counterRoll {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-8px); opacity: 0.5; }
+  60%  { transform: translateY(4px); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+
+/* Toast slide-in from top-right */
+@keyframes toastIn {
+  0%   { opacity: 0; transform: translateX(100%) scale(0.9); }
+  60%  { transform: translateX(-5%) scale(1.02); }
+  80%  { transform: translateX(2%) scale(0.99); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Toast slide-out */
+@keyframes toastOut {
+  to { opacity: 0; transform: translateX(100%) scale(0.9); }
+}
+
+/* Spinner glow pulse */
+@keyframes spinnerGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 122, 255, 0.3); }
+  50%      { box-shadow: 0 0 20px rgba(0, 122, 255, 0.6); }
+}
+
+/* Hover highlight slide */
+@keyframes highlightSlide {
+  from { background-position: -100% 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* Scale pop for active states */
+@keyframes scalePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
 /* ==========================================
    Animation Utility Classes
    ========================================== */
@@ -257,6 +394,62 @@ body {
   animation: subtlePulse 2s ease-in-out infinite;
 }
 
+/* Enhanced page entrance with blur */
+.animate-page-in-enhanced {
+  animation: pageInEnhanced var(--duration-page) var(--ease-spring) backwards;
+}
+
+/* Spring card entrance */
+.animate-card-spring {
+  animation: cardSpringIn 0.5s var(--ease-spring) backwards;
+}
+
+/* List item entrance */
+.animate-list-item-in {
+  animation: listItemIn var(--duration-normal) var(--ease-spring) backwards;
+}
+
+/* List item exit */
+.animate-list-item-out {
+  animation: listItemOut 0.3s var(--ease-out) forwards;
+}
+
+/* Modal entrance */
+.animate-modal-backdrop {
+  animation: modalBackdropIn 0.3s ease forwards;
+}
+.animate-modal-content {
+  animation: modalContentIn 0.4s var(--ease-spring-bounce) backwards;
+}
+
+/* Toast */
+.animate-toast-in {
+  animation: toastIn 0.4s var(--ease-spring-bounce) backwards;
+}
+.animate-toast-out {
+  animation: toastOut 0.25s var(--ease-out) forwards;
+}
+
+/* Counter roll */
+.animate-counter {
+  animation: counterRoll 0.3s var(--ease-spring);
+}
+
+/* Success flash */
+.animate-success-flash {
+  animation: successFlash 0.6s ease;
+}
+
+/* Error shake */
+.animate-error-shake {
+  animation: errorShake 0.5s ease;
+}
+
+/* Scale pop */
+.animate-scale-pop {
+  animation: scalePop 0.3s var(--ease-spring);
+}
+
 /* Stagger delays */
 .stagger-1 { animation-delay: calc(var(--stagger) * 1); }
 .stagger-2 { animation-delay: calc(var(--stagger) * 2); }
@@ -273,83 +466,129 @@ body {
    Interaction Styles
    ========================================== */
 
-/* Proxy card hover */
+/* Proxy card hover - enhanced */
 .proxy-card {
+  position: relative;
+  overflow: hidden;
   transition: transform var(--duration-fast) var(--ease-spring),
               box-shadow var(--duration-fast) var(--ease-spring),
-              background-color var(--duration-fast) ease;
+              border-color var(--duration-fast) ease;
 }
 .proxy-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary);
 }
 [data-theme="dark"] .proxy-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 .proxy-card:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
-/* Stat card hover */
+/* Stat card hover - enhanced */
 .stat-card {
+  position: relative;
+  overflow: hidden;
   transition: transform var(--duration-fast) var(--ease-spring),
               box-shadow var(--duration-fast) var(--ease-spring);
 }
 .stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 8px 30px rgba(0, 122, 255, 0.08);
 }
 [data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 30px rgba(10, 132, 255, 0.12);
 }
 
-/* Sidebar nav item */
+/* Nav item with active indicator */
 .nav-item {
+  position: relative;
   transition: background-color var(--duration-fast) ease,
               color var(--duration-fast) ease,
               transform var(--duration-fast) var(--ease-spring);
 }
 .nav-item:hover {
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 .nav-item:active {
   transform: scale(0.97);
 }
 
-/* List row hover */
+/* Active indicator */
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--gradient-primary);
+  border-radius: 0 3px 3px 0;
+  animation: indicatorSlide 0.3s var(--ease-spring) backwards;
+}
+
+/* List row with hover slide highlight */
 .list-row {
-  transition: background-color var(--duration-fast) ease;
+  position: relative;
+  transition: background-color var(--duration-fast) ease,
+              transform var(--duration-fast) var(--ease-spring);
+}
+.list-row:hover {
+  background: linear-gradient(90deg, transparent, rgba(0, 122, 255, 0.04), transparent);
+  background-size: 200% 100%;
+  animation: highlightSlide 1.5s ease;
 }
 
 /* ==========================================
    Skeleton Loading
    ========================================== */
+/* Skeleton Loading — enhanced */
 .skeleton {
   background: linear-gradient(
     90deg,
     var(--color-base-300) 25%,
-    var(--color-base-200) 50%,
-    var(--color-base-300) 75%
+    var(--color-base-200) 37%,
+    var(--color-base-300) 63%
   );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Skeleton with pulse glow */
+.skeleton-glow {
+  background: linear-gradient(
+    90deg,
+    var(--color-base-300) 25%,
+    rgba(0, 122, 255, 0.08) 37%,
+    var(--color-base-300) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 2s ease-in-out infinite;
   border-radius: 8px;
 }
 
 /* ==========================================
    Glassmorphism (Sidebar)
    ========================================== */
+/* Glassmorphism — enhanced */
 .glass {
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.05);
 }
 
 [data-theme="light"] .glass {
-  background-color: rgba(245, 245, 247, 0.72);
+  background-color: rgba(245, 245, 247, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 [data-theme="dark"] .glass {
-  background-color: rgba(28, 28, 30, 0.72);
+  background-color: rgba(28, 28, 30, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* ==========================================
@@ -381,6 +620,30 @@ body {
    Custom DaisyUI Component Overrides
    ========================================== */
 
+/* Button — enhanced with micro-interactions */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--duration-fast) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-spring),
+              background-color var(--duration-fast) ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn.btn-primary:hover {
+  box-shadow: var(--glow-primary);
+}
+.btn.btn-success:hover {
+  box-shadow: var(--glow-success);
+}
+.btn.btn-error:hover {
+  box-shadow: var(--glow-error);
+}
+
 /* Badge — pill shape */
 .badge {
   font-weight: 500;
@@ -388,13 +651,18 @@ body {
   transition: all var(--duration-fast) ease;
 }
 
-/* Toggle switch */
+/* Toggle switch - enhanced */
 .toggle {
-  transition: all var(--duration-normal) var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring-bounce);
+}
+.toggle:checked {
+  animation: toggleGlow 0.4s ease;
 }
 
-/* Card — clean with subtle border */
+/* Card — enhanced with subtle animations */
 .card {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--color-base-300);
   transition: transform var(--duration-fast) var(--ease-spring),
               box-shadow var(--duration-fast) var(--ease-spring),
@@ -402,11 +670,11 @@ body {
 }
 
 [data-theme="light"] .card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] .card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Input / Select */
@@ -544,4 +812,83 @@ body {
   .sidebar-container.expanded {
     width: var(--sidebar-collapsed);
   }
+}
+
+/* ==========================================
+   Gradient & Texture Utilities
+   ========================================== */
+
+/* Gradient text utility */
+.text-gradient-primary {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient border (for special cards) */
+.gradient-border {
+  border: none;
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--gradient-primary);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* Noise texture overlay */
+.noise-bg {
+  position: relative;
+}
+.noise-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ==========================================
+   Ripple Container
+   ========================================== */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==========================================
+   Mobile Nav Enhancement
+   ========================================== */
+.mobile-nav-item {
+  transition: transform var(--duration-fast) var(--ease-spring),
+              color var(--duration-fast) ease;
+}
+.mobile-nav-item:active {
+  transform: scale(0.9);
+}
+.mobile-nav-item-active {
+  position: relative;
+}
+.mobile-nav-item-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: scalePop 0.3s var(--ease-spring);
 }

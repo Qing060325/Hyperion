@@ -248,6 +248,8 @@ export interface HyperionSettings {
   wizard_completed: boolean;
   first_run: boolean;
   auto_detect_clash: boolean;
+  // v0.4.0 新增
+  sakura_skin: boolean;
 }
 
 export const DEFAULT_SETTINGS: HyperionSettings = {
@@ -263,6 +265,8 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   wizard_completed: false,
   first_run: true,
   auto_detect_clash: true,
+  // v0.4.0 新增
+  sakura_skin: false,
 };
 
 // ==========================================

@@ -1,5 +1,6 @@
 import { A, useLocation } from "@solidjs/router";
 import { LayoutDashboard, Globe, Link2, ScrollText, Settings } from "lucide-solid";
+import ripple from "@/components/ui/RippleEffect";
 
 const navItems = [
   { path: "/", label: "首页", icon: LayoutDashboard },
@@ -21,12 +22,14 @@ export default function MobileNav() {
     <div class="mobile-nav items-center justify-around px-2 py-2">
       {navItems.map((item) => {
         const Icon = item.icon;
+        const active = isActive(item.path);
         return (
           <A
             href={item.path}
-            class={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
-              isActive(item.path)
-                ? "text-primary"
+            use:ripple
+            class={`mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
+              active
+                ? "mobile-nav-item-active text-primary"
                 : "text-base-content/50"
             }`}
           >

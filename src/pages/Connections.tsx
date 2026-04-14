@@ -3,6 +3,7 @@ import { Search, XCircle, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
 import { formatBytes } from "@/utils/format";
+import ripple from "@/components/ui/RippleEffect";
 
 interface Connection {
   id: string;
@@ -147,7 +148,7 @@ export default function Connections() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -156,7 +157,7 @@ export default function Connections() {
             实时连接管理 · {connections().length} 个活跃连接
           </p>
         </div>
-        <button class="btn btn-error btn-sm btn-outline rounded-xl gap-1.5" onClick={closeAll}>
+        <button use:ripple class="btn btn-error btn-sm btn-outline rounded-xl gap-1.5" onClick={closeAll}>
           <Trash2 size={14} />
           关闭全部
         </button>

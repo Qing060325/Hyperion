@@ -6,6 +6,9 @@ import { useSettingsStore } from "./stores/settings";
 import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
+import SakuraCanvas from "./components/sakura/SakuraCanvas";
+import PageTransition from "./components/ui/PageTransition";
+import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
 import Proxies from "./pages/Proxies";
 import Connections from "./pages/Connections";
@@ -83,11 +86,12 @@ function Root(props: ParentProps) {
   });
 
   return (
-    <div class="app-layout bg-base-200">
+    <div class="app-layout bg-base-200 noise-bg">
+      <SakuraCanvas />
       <Sidebar />
-      <main class="main-content">
+      <main class="main-content" style={{ position: "relative", "z-index": 1 }}>
         <div class="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
-          {props.children}
+          <PageTransition>{props.children}</PageTransition>
         </div>
       </main>
       <MobileNav />

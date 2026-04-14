@@ -8,6 +8,7 @@ import { useNavigate } from "@solidjs/router";
 import RuleEditor from "../components/rules/RuleEditor";
 import type { RuleFormData } from "../types/rule-editor";
 import { parseRulesString, validateRules } from "../components/rules/RuleValidator";
+import ripple from "@/components/ui/RippleEffect";
 import { clashApi } from "../services/clash-api";
 
 export default function RuleEditorPage() {
@@ -75,10 +76,10 @@ export default function RuleEditorPage() {
   };
 
   return (
-    <div class="space-y-6 h-[calc(100vh-8rem)]">
+    <div class="animate-page-in-enhanced space-y-6 h-[calc(100vh-8rem)]">
       {/* Header */}
       <div class="flex items-center gap-4">
-        <button class="btn btn-ghost btn-sm btn-circle" onClick={handleCancel}>
+        <button use:ripple class="btn btn-ghost btn-sm btn-circle" onClick={handleCancel}>
           <ArrowLeft class="w-5 h-5" />
         </button>
         <div>
@@ -106,7 +107,7 @@ export default function RuleEditorPage() {
 
       {/* Editor */}
       <Show when={!loading()}>
-        <div class="card bg-base-100 shadow-lg border border-base-300 flex-1 overflow-hidden">
+        <div class="card bg-base-100 shadow-lg border border-base-300 flex-1 overflow-hidden animate-card-spring">
           <div class="card-body p-6 h-full">
             <RuleEditor
               rules={rules()}

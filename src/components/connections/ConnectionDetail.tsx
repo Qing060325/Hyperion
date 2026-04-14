@@ -8,6 +8,7 @@ import type { ConnectionInfo } from "../../types/clash";
 import type { IPLocation } from "../../types/connection";
 import { geoipService } from "../../services/geoip";
 import { formatBytes, formatDuration } from "../../utils/format";
+import ripple from "@/components/ui/RippleEffect";
 
 interface ConnectionDetailProps {
   connection: ConnectionInfo;
@@ -41,13 +42,13 @@ export default function ConnectionDetail(props: ConnectionDetailProps) {
   const meta = () => props.connection.metadata;
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/80 backdrop-blur-sm">
-      <div class="card bg-base-100 shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/80 backdrop-blur-sm animate-modal-backdrop">
+      <div class="card bg-base-100 shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden animate-modal-content">
         {/* Header */}
         <div class="card-body p-0">
           <div class="flex items-center justify-between p-4 border-b border-base-300">
             <h3 class="font-bold text-lg">连接详情</h3>
-            <button class="btn btn-ghost btn-sm btn-circle" onClick={props.onClose}>
+            <button use:ripple class="btn btn-ghost btn-sm btn-circle" onClick={props.onClose}>
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -177,12 +178,14 @@ export default function ConnectionDetail(props: ConnectionDetailProps) {
           <div class="flex gap-2 p-4 border-t border-base-300">
             <button
               class="btn btn-error btn-sm flex-1"
+              use:ripple
               onClick={() => props.onDisconnect?.(props.connection.id)}
             >
               断开连接
             </button>
             <button
               class="btn btn-ghost btn-sm"
+              use:ripple
               onClick={props.onClose}
             >
               关闭

@@ -15,6 +15,7 @@ import {
 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { formatBytes } from "@/utils/format";
+import ripple from "@/components/ui/RippleEffect";
 
 // 订阅信息接口
 interface SubscriptionInfo {
@@ -168,7 +169,7 @@ export default function Subscriptions() {
   });
 
   return (
-    <div class="p-6 max-w-7xl mx-auto">
+    <div class="animate-page-in-enhanced p-6 max-w-7xl mx-auto">
       {/* 头部 */}
       <div class="flex items-center justify-between mb-6">
         <div>
@@ -179,6 +180,7 @@ export default function Subscriptions() {
         </div>
         <div class="flex gap-2">
           <button
+            use:ripple
             class="btn btn-outline btn-sm"
             onClick={updateAllSubscriptions}
             disabled={updating() === "all"}
@@ -187,6 +189,7 @@ export default function Subscriptions() {
             {updating() === "all" ? "更新中..." : "更新全部"}
           </button>
           <button
+            use:ripple
             class="btn btn-primary btn-sm"
             onClick={() => setShowAddModal(true)}
           >
@@ -215,6 +218,7 @@ export default function Subscriptions() {
                 添加订阅链接，自动获取代理节点
               </p>
               <button
+                use:ripple
                 class="btn btn-primary"
                 onClick={() => setShowAddModal(true)}
               >
@@ -227,7 +231,7 @@ export default function Subscriptions() {
           <div class="grid gap-4">
             <For each={subscriptions()}>
               {(sub) => (
-                <div class="card bg-base-100 shadow-sm border border-base-200">
+                <div class="card bg-base-100 shadow-sm border border-base-200 animate-card-spring">
                   <div class="card-body">
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
@@ -314,6 +318,7 @@ export default function Subscriptions() {
                       {/* 操作按钮 */}
                       <div class="flex flex-col gap-2 ml-4">
                         <button
+                          use:ripple
                           class="btn btn-sm btn-outline"
                           onClick={() => updateSubscription(sub.name)}
                           disabled={updating() === sub.name}
@@ -334,11 +339,12 @@ export default function Subscriptions() {
 
       {/* 添加订阅弹窗 */}
       <Show when={showAddModal()}>
-        <div class="modal modal-open">
-          <div class="modal-box max-w-lg">
+        <div class="modal modal-open animate-modal-backdrop">
+          <div class="modal-box max-w-lg animate-modal-content">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold">添加订阅</h3>
               <button
+                use:ripple
                 class="btn btn-ghost btn-sm btn-circle"
                 onClick={() => setShowAddModal(false)}
               >
@@ -414,10 +420,10 @@ export default function Subscriptions() {
             </div>
 
             <div class="modal-action">
-              <button class="btn btn-ghost" onClick={() => setShowAddModal(false)}>
+              <button use:ripple class="btn btn-ghost" onClick={() => setShowAddModal(false)}>
                 取消
               </button>
-              <button class="btn btn-primary" onClick={addSubscription}>
+              <button use:ripple class="btn btn-primary" onClick={addSubscription}>
                 <Check class="w-4 h-4 mr-1" />
                 复制配置
               </button>

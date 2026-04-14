@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { RefreshCw, MapPin, Database, RotateCcw } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import ripple from "@/components/ui/RippleEffect";
 
 interface ClashConfigData {
   "mixed-port"?: number;
@@ -107,7 +108,7 @@ export default function Configs() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">配置</h1>
         <p class="text-sm text-base-content/50 mt-0.5">管理 Clash 内核配置和数据库</p>
@@ -119,7 +120,7 @@ export default function Configs() {
           {(a, i) => {
             const Icon = a.icon;
             return (
-              <div class="stat-card card bg-base-100 p-4 animate-card-in" style={{ "animation-delay": `${i() * 60}ms` }}>
+              <div class="stat-card card bg-base-100 p-4 animate-card-spring" style={{ "animation-delay": `${i() * 60}ms` }}>
                 <div class="flex items-center gap-2 mb-3">
                   <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                     <Icon size={16} />
@@ -128,6 +129,7 @@ export default function Configs() {
                 </div>
                 <p class="text-xs text-base-content/50 mb-3">{a.desc}</p>
                 <button
+                  use:ripple
                   class={`btn btn-sm btn-primary btn-outline rounded-xl w-full ${loading() === a.name ? "loading" : ""}`}
                   onClick={a.action}
                 >
@@ -140,7 +142,7 @@ export default function Configs() {
       </div>
 
       {/* Config Info */}
-      <div class="card bg-base-100 animate-card-in stagger-5">
+      <div class="card bg-base-100 animate-card-spring stagger-5">
         <div class="p-4 border-b border-base-300">
           <span class="font-medium text-sm">配置信息</span>
         </div>
@@ -157,7 +159,7 @@ export default function Configs() {
       </div>
 
       {/* Providers */}
-      <div class="card bg-base-100 animate-card-in stagger-6">
+      <div class="card bg-base-100 animate-card-spring stagger-6">
         <div class="flex items-center justify-between p-4 border-b border-base-300">
           <span class="font-medium text-sm">代理集 (Providers)</span>
           <span class="badge badge-sm badge-ghost">{providers().length}</span>
@@ -172,7 +174,7 @@ export default function Configs() {
                     {p.vehicleType} · {p.type} · 更新于 {p.updatedAt ? new Date(p.updatedAt).toLocaleString() : "-"}
                   </div>
                 </div>
-                <button class="btn btn-xs btn-ghost rounded-xl" onClick={() => updateProvider(p.name)}>
+                <button use:ripple class="btn btn-xs btn-ghost rounded-xl" onClick={() => updateProvider(p.name)}>
                   更新
                 </button>
               </div>

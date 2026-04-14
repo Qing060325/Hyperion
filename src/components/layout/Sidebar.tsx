@@ -15,6 +15,7 @@ import {
 import { useClashStore } from "@/stores/clash";
 import { useThemeStore } from "@/stores/theme";
 import { Moon, Sun, Monitor } from "lucide-solid";
+import ripple from "@/components/ui/RippleEffect";
 
 const navItems = [
   { path: "/", label: "仪表盘", icon: LayoutDashboard },
@@ -59,11 +60,13 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div class="flex items-center gap-3 px-4 h-14 border-b border-base-300 flex-shrink-0">
-        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-content font-bold text-sm flex-shrink-0">
+        <div class="w-8 h-8 rounded-lg gradient-border flex items-center justify-center text-primary-content font-bold text-sm flex-shrink-0"
+          style={{ background: "var(--gradient-primary)" }}
+        >
           H
         </div>
         {!collapsed() && (
-          <span class="font-semibold text-base-content tracking-tight animate-fade-left whitespace-nowrap">
+          <span class="font-semibold text-base-content tracking-tight animate-fade-left whitespace-nowrap text-gradient-primary">
             Hyperion
           </span>
         )}
@@ -72,7 +75,7 @@ export default function Sidebar() {
       {/* Connection Status */}
       <div class="px-3 py-2 flex-shrink-0">
         <div
-          class={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs ${
+          class={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-all duration-200 ${
             clash.connected()
               ? "bg-success/10 text-success"
               : "bg-error/10 text-error"
@@ -97,19 +100,20 @@ export default function Sidebar() {
         <For each={navItems}>
           {(item, index) => {
             const Icon = item.icon;
+            const active = isActive(item.path);
             return (
               <A
                 href={item.path}
+                use:ripple
                 class={`nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-sm cursor-pointer ${
-                  isActive(item.path)
-                    ? "bg-primary/10 text-primary font-medium"
+                  active
+                    ? "nav-item-active bg-primary/10 text-primary font-medium"
                     : "text-base-content/70 hover:text-base-content hover:bg-base-200/60"
                 }`}
                 style={{ "animation-delay": `${index() * 30}ms` }}
                 classList={{
                   "justify-center": collapsed(),
                   "pl-3 pr-3": collapsed(),
-                  "border-l-2 border-primary": isActive(item.path),
                 }}
                 title={collapsed() ? item.label : undefined}
               >
@@ -127,6 +131,7 @@ export default function Sidebar() {
       <div class="border-t border-base-300 p-2 flex-shrink-0 space-y-1">
         {/* Theme Toggle */}
         <button
+          use:ripple
           onClick={cycleTheme}
           class="nav-item flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-base-content/70 hover:text-base-content hover:bg-base-200/60"
           classList={{ "justify-center": collapsed() }}
@@ -144,6 +149,7 @@ export default function Sidebar() {
 
         {/* Collapse Toggle */}
         <button
+          use:ripple
           onClick={() => setCollapsed(!collapsed())}
           class="nav-item flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-base-content/70 hover:text-base-content hover:bg-base-200/60"
           classList={{ "justify-center": collapsed() }}

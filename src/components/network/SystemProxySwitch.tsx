@@ -17,7 +17,7 @@ export default function SystemProxySwitch(props: SystemProxySwitchProps) {
   const isEnabled = () => props.config?.enabled ?? false;
 
   return (
-    <div class="card bg-base-200 border border-base-300">
+    <div class="card bg-base-200 border border-base-300 animate-card-spring">
       <div class="card-body p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -66,6 +66,7 @@ export default function SystemProxySwitch(props: SystemProxySwitchProps) {
 
         <Show when={props.onConfigure}>
           <button
+            use:ripple
             class="btn btn-ghost btn-sm btn-block mt-2 gap-1"
             onClick={props.onConfigure}
           >

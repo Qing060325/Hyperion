@@ -9,6 +9,7 @@ import WizardStep2 from "./WizardStep2";
 import WizardStep3 from "./WizardStep3";
 import WizardStep4 from "./WizardStep4";
 import { X } from "lucide-solid";
+import ripple from "@/components/ui/RippleEffect";
 
 interface WelcomeWizardProps {
   onComplete: () => void;
@@ -31,8 +32,8 @@ export default function WelcomeWizard(props: WelcomeWizardProps) {
   };
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/95 backdrop-blur-sm">
-      <div class="w-full max-w-2xl mx-4">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/95 backdrop-blur-sm animate-modal-backdrop">
+      <div class="w-full max-w-2xl mx-4 animate-modal-content">
         {/* Progress indicator */}
         <div class="mb-8">
           <div class="flex items-center justify-center gap-2">
@@ -105,6 +106,7 @@ export default function WelcomeWizard(props: WelcomeWizardProps) {
         <Show when={wizard.state().currentStep !== 'complete'}>
           <div class="text-center mt-4">
             <button
+              use:ripple
               class="btn btn-ghost btn-sm text-base-content/50"
               onClick={handleComplete}
             >

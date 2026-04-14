@@ -6,6 +6,7 @@ import { Show } from "solid-js";
 import { Zap, Clock, Wifi, WifiOff } from "lucide-solid";
 import type { ProxyInfo } from "../../types/clash";
 import { getDelayColor } from "../../utils/color";
+import ripple from "@/components/ui/RippleEffect";
 
 interface DraggableProxyCardProps {
   proxy: ProxyInfo;
@@ -33,11 +34,12 @@ export default function DraggableProxyCard(props: DraggableProxyCardProps) {
   return (
     <div
       classList={{
-        'card bg-base-200 border cursor-pointer transition-all duration-200 hover:border-primary/50': true,
-        'border-primary ring-1 ring-primary/20': props.isSelected,
+        'card bg-base-200 border cursor-pointer transition-all duration-200 hover:border-primary/50 proxy-card': true,
+        'border-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10': props.isSelected,
         'border-transparent': !props.isSelected,
       }}
       onClick={props.onSelect}
+      use:ripple
     >
       <div class="card-body p-3 flex-row items-center gap-3">
         {/* Type badge */}
@@ -64,6 +66,7 @@ export default function DraggableProxyCard(props: DraggableProxyCardProps) {
         <Show when={props.proxy.type !== 'Selector' && props.proxy.type !== 'URLTest' && props.proxy.type !== 'Fallback'}>
           <div class="flex items-center gap-1">
             <button
+              use:ripple
               class="btn btn-ghost btn-xs btn-circle"
               onClick={(e) => {
                 e.stopPropagation();

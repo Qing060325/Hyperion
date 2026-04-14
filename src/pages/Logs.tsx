@@ -2,6 +2,7 @@ import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, Pause, Play, Trash2, ArrowDown } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
+import ripple from "@/components/ui/RippleEffect";
 
 interface LogEntry {
   type: string;
@@ -92,7 +93,7 @@ export default function Logs() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">日志</h1>
         <p class="text-sm text-base-content/50 mt-0.5">Hades 实时日志流 · {logs().length} 条</p>
@@ -104,6 +105,7 @@ export default function Logs() {
           {(["", "debug", "info", "warning", "error"] as const).map((l) => (
             <button
               class={`btn btn-sm join-item rounded-none ${!l && !level() ? "btn-primary" : level() === l ? "btn-primary" : "btn-ghost"}`}
+              use:ripple
               onClick={() => {
                 setLevel(l);
                 setLogs([]);
@@ -130,6 +132,7 @@ export default function Logs() {
         <div class="flex items-center gap-1">
           <button
             class={`btn btn-sm btn-square rounded-xl ${autoScroll() ? "btn-primary" : "btn-ghost"}`}
+            use:ripple
             onClick={() => setAutoScroll(!autoScroll())}
             title="自动滚动"
           >
@@ -137,12 +140,13 @@ export default function Logs() {
           </button>
           <button
             class={`btn btn-sm btn-square rounded-xl ${paused() ? "btn-primary" : "btn-ghost"}`}
+            use:ripple
             onClick={() => setPaused(!paused())}
             title={paused() ? "继续" : "暂停"}
           >
             {paused() ? <Play size={14} /> : <Pause size={14} />}
           </button>
-          <button class="btn btn-sm btn-square rounded-xl btn-ghost" onClick={() => setLogs([])} title="清空">
+          <button use:ripple class="btn btn-sm btn-square rounded-xl btn-ghost" onClick={() => setLogs([])} title="清空">
             <Trash2 size={14} />
           </button>
         </div>

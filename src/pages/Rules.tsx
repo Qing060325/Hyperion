@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import ripple from "@/components/ui/RippleEffect";
 
 interface Rule {
   type: string;
@@ -56,7 +57,7 @@ export default function Rules() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">规则</h1>
@@ -91,7 +92,7 @@ export default function Rules() {
             <tbody>
               <For each={filtered()}>
                 {(rule, i) => (
-                  <tr class="list-row hover:bg-base-200/50 border-b border-base-200/50 animate-fade-left" style={{ "animation-delay": `${Math.min(i(), 20) * 20}ms` }}>
+                  <tr class="list-row hover:bg-base-200/50 border-b border-base-200/50 animate-list-item-in" style={{ "animation-delay": `${Math.min(i(), 20) * 20}ms` }}>
                     <td class="text-xs text-base-content/30 font-mono">{i() + 1}</td>
                     <td>
                       <span class={`badge badge-sm ${getTypeBadge(rule.type)}`}>

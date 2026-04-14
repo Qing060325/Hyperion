@@ -8,6 +8,7 @@ import type { RuleFormData, RuleType } from "../../types/rule-editor";
 import { RULE_TYPES, getRuleTypeMeta } from "../../types/rule-editor";
 import RuleForm from "./RuleForm";
 import RulePreview from "./RulePreview";
+import ripple from "@/components/ui/RippleEffect";
 
 interface RuleEditorProps {
   rules: RuleFormData[];

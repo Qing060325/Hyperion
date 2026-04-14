@@ -1,13 +1,16 @@
 import { createSignal, createEffect, Show } from "solid-js";
 import { useThemeStore } from "@/stores/theme";
 import { useClashStore } from "@/stores/clash";
+import { useSettingsStore } from "@/stores/settings";
 import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle } from "lucide-solid";
+import ripple from "@/components/ui/RippleEffect";
 
 type Theme = "light" | "dark" | "system";
 
 export default function Settings() {
   const themeStore = useThemeStore();
   const clash = useClashStore();
+  const settingsStore = useSettingsStore();
 
   const [language, setLanguage] = createSignal("zh-CN");
   const [autoStart, setAutoStart] = createSignal(false);
@@ -68,14 +71,14 @@ export default function Settings() {
   ];
 
   return (
-    <div class="animate-page-in space-y-6 max-w-2xl">
+    <div class="animate-page-in-enhanced space-y-6 max-w-2xl">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">设置</h1>
         <p class="text-sm text-base-content/50 mt-0.5">应用与网络配置</p>
       </div>
 
       {/* General */}
-      <div class="card bg-base-100 animate-card-in stagger-1">
+      <div class="card bg-base-100 animate-card-spring stagger-1">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">通用</span>
         </div>
@@ -100,7 +103,7 @@ export default function Settings() {
       </div>
 
       {/* Connection */}
-      <div class="card bg-base-100 animate-card-in stagger-2">
+      <div class="card bg-base-100 animate-card-spring stagger-2">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">连接</span>
         </div>
@@ -123,8 +126,9 @@ export default function Settings() {
           </Show>
           <div class="px-4 py-3">
             <button
+              use:ripple
               class={`btn btn-sm rounded-xl w-full gap-1.5 ${
-                saveOk() ? "btn-success" : "btn-primary"
+                saveOk() ? "btn-success animate-success-flash" : "btn-primary"
               } ${saving() ? "loading" : ""}`}
               onClick={saveConnection}
             >
@@ -136,7 +140,7 @@ export default function Settings() {
       </div>
 
       {/* Appearance */}
-      <div class="card bg-base-100 animate-card-in stagger-3">
+      <div class="card bg-base-100 animate-card-spring stagger-3">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">外观</span>
         </div>
@@ -147,6 +151,7 @@ export default function Settings() {
               const isActive = themeStore.theme() === opt.value;
               return (
                 <button
+                  use:ripple
                   class={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 ${
                     isActive
                       ? "border-primary bg-primary/5"
@@ -164,10 +169,23 @@ export default function Settings() {
             })}
           </div>
         </div>
+
+        {/* Sakura Skin Toggle */}
+        <div class="divide-y divide-base-200/50">
+          <SettingRow label="樱花特效" desc="开启飘落樱花粒子动画">
+            <label class="toggle toggle-sm toggle-primary">
+              <input
+                type="checkbox"
+                checked={settingsStore.settings().sakura_skin}
+                onChange={() => settingsStore.updateSettings({ sakura_skin: !settingsStore.settings().sakura_skin })}
+              />
+            </label>
+          </SettingRow>
+        </div>
       </div>
 
       {/* Network */}
-      <div class="card bg-base-100 animate-card-in stagger-4">
+      <div class="card bg-base-100 animate-card-spring stagger-4">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">网络</span>
         </div>
@@ -191,6 +209,7 @@ export default function Settings() {
             <div class="join">
               {(["rule", "global", "direct"] as const).map((m) => (
                 <button
+                  use:ripple
                   class={`btn btn-xs join-item rounded-none ${clash.config()?.mode === m ? "btn-primary" : "btn-ghost"}`}
                   onClick={() => setMode(m)}
                 >
@@ -215,7 +234,7 @@ export default function Settings() {
       <SystemUpgrade clash={clash} />
 
       {/* About */}
-      <div class="card bg-base-100 animate-card-in stagger-5">
+      <div class="card bg-base-100 animate-card-spring stagger-5">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">关于</span>
         </div>
@@ -357,13 +376,14 @@ function SystemUpgrade(props: { clash: any }) {
 
   return (
     <>
-      <div class="card bg-base-100 animate-card-in stagger-4">
+      <div class="card bg-base-100 animate-card-spring stagger-4">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">系统</span>
         </div>
         <div class="divide-y divide-base-200/50">
           <SettingRow label="Hades 内核升级" desc="检查并安装最新版本">
             <button
+              use:ripple
               class={`btn btn-sm rounded-xl gap-1.5 ${upgrading() ? "btn-disabled" : "btn-outline btn-primary"}`}
               onClick={checkUpgrade}
               disabled={upgrading()}
@@ -383,11 +403,12 @@ function SystemUpgrade(props: { clash: any }) {
 
       {/* 升级状态弹窗 */}
       <Show when={showModal()}>
-        <div class="modal modal-open">
-          <div class="modal-box max-w-md">
+        <div class="modal modal-open animate-modal-backdrop">
+          <div class="modal-box max-w-md animate-modal-content">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold">系统升级</h3>
               <button
+                use:ripple
                 class="btn btn-ghost btn-sm btn-circle"
                 onClick={() => setShowModal(false)}
                 disabled={upgrading()}
@@ -461,6 +482,7 @@ function SystemUpgrade(props: { clash: any }) {
 
             <div class="modal-action">
               <button
+                use:ripple
                 class="btn btn-ghost"
                 onClick={() => setShowModal(false)}
                 disabled={upgrading()}
@@ -469,9 +491,9 @@ function SystemUpgrade(props: { clash: any }) {
               </button>
               <Show when={upgradeStatus()?.status === "completed"}>
                 <button
+                  use:ripple
                   class="btn btn-primary"
                   onClick={() => {
-                    // 重启服务（通过 API 或提示用户）
                     alert("请手动重启 Hades 服务以完成升级");
                     setShowModal(false);
                   }}

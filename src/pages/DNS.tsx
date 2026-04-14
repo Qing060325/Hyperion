@@ -1,6 +1,7 @@
 import { createSignal, Show, For } from "solid-js";
 import { Search, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import ripple from "@/components/ui/RippleEffect";
 
 const recordTypes = ["A", "AAAA", "CNAME", "TXT", "MX", "NS"];
 
@@ -51,14 +52,14 @@ export default function DNS() {
   fetchFakeIP();
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">DNS</h1>
         <p class="text-sm text-base-content/50 mt-0.5">DNS 查询和 Fake-IP 缓存管理</p>
       </div>
 
       {/* DNS Query */}
-      <div class="card bg-base-100 animate-card-in stagger-1">
+      <div class="card bg-base-100 animate-card-spring stagger-1">
         <div class="p-4 border-b border-base-300">
           <span class="font-medium text-sm">DNS 查询</span>
         </div>
@@ -79,7 +80,7 @@ export default function DNS() {
             >
               <For each={recordTypes}>{(t) => <option value={t}>{t}</option>}</For>
             </select>
-            <button class={`btn btn-primary btn-sm rounded-xl ${loading() ? "loading" : ""}`} onClick={queryDNS}>
+            <button use:ripple class={`btn btn-primary btn-sm rounded-xl ${loading() ? "loading" : ""}`} onClick={queryDNS}>
               <Search size={14} />
               查询
             </button>
@@ -115,7 +116,7 @@ export default function DNS() {
       </div>
 
       {/* Fake-IP */}
-      <div class="card bg-base-100 animate-card-in stagger-2">
+      <div class="card bg-base-100 animate-card-spring stagger-2">
         <div class="flex items-center justify-between p-4 border-b border-base-300">
           <span class="font-medium text-sm">Fake-IP 缓存</span>
           <span class="badge badge-sm badge-ghost">{fakeIPCount()} 条</span>
@@ -125,7 +126,7 @@ export default function DNS() {
             <p class="text-sm text-base-content/70">当前缓存 {fakeIPCount()} 条 Fake-IP 映射记录</p>
             <p class="text-xs text-base-content/40 mt-0.5">清除缓存可解决 DNS 解析异常问题</p>
           </div>
-          <button class="btn btn-sm btn-error btn-outline rounded-xl gap-1.5" onClick={flushFakeIP}>
+          <button use:ripple class="btn btn-sm btn-error btn-outline rounded-xl gap-1.5" onClick={flushFakeIP}>
             <Trash2 size={14} />
             清除缓存
           </button>

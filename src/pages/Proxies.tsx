@@ -2,6 +2,7 @@ import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, Zap, ChevronDown, ChevronRight } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import type { ClashProxy, ClashProxyGroup } from "@/types/clash";
+import ripple from "@/components/ui/RippleEffect";
 
 function getDelayClass(delay: number) {
   if (!delay || delay === 0) return "delay-badge-timeout";
@@ -159,7 +160,7 @@ export default function Proxies() {
   };
 
   return (
-    <div class="animate-page-in space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -172,7 +173,7 @@ export default function Proxies() {
           </p>
         </div>
         <button
-          class={`btn btn-primary btn-sm rounded-xl gap-1.5 ${testing() ? "loading" : ""}`}
+          class="btn btn-primary btn-sm rounded-xl gap-1.5 ripple-container"
           onClick={testAll}
         >
           <Zap size={14} />
@@ -201,7 +202,7 @@ export default function Proxies() {
             const isAuto = () => ["URLTest", "Fallback", "LoadBalance"].includes(group.type);
 
             return (
-              <div class="card bg-base-100 animate-card-in" style={{ "animation-delay": `${gi() * 60}ms` }}>
+              <div class="card bg-base-100 animate-card-spring" style={{ "animation-delay": `${gi() * 60}ms` }}>
                 {/* Group Header */}
                 <button
                   class="w-full flex items-center justify-between p-4 hover:bg-base-200/50 rounded-xl transition-colors"
@@ -231,6 +232,7 @@ export default function Proxies() {
 
                           return (
                             <button
+                              use:ripple
                               class={`proxy-card flex items-center justify-between p-3 rounded-xl border text-left ${
                                 isActive()
                                   ? "border-primary/40 bg-primary/5"
@@ -243,7 +245,7 @@ export default function Proxies() {
                               }}
                               style={{ "animation-delay": `${ni() * 30}ms` }}
                             >
-                              <div class="min-w-0 flex-1">
+                              <div class="min-w-0 flex-1 animate-list-item-in">
                                 <div class="flex items-center gap-1.5">
                                   {isActive() && (
                                     <span class="w-1.5 h-1.5 rounded-full bg-primary animate-subtle-pulse flex-shrink-0" />

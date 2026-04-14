@@ -9,6 +9,7 @@ import ProfileImporter from "../components/profiles/ProfileImporter";
 import type { Profile } from "../types/clash";
 import { profileManager } from "../services/profile-manager";
 import { clashApi } from "../services/clash-api";
+import ripple from "@/components/ui/RippleEffect";
 
 export default function Profiles() {
   const [profiles, setProfiles] = createSignal<Profile[]>([]);
@@ -90,7 +91,7 @@ export default function Profiles() {
   };
 
   return (
-    <div class="space-y-6">
+    <div class="animate-page-in-enhanced space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between">
         <div>
@@ -102,7 +103,7 @@ export default function Profiles() {
             管理多个 Clash 配置文件
           </p>
         </div>
-        <button class="btn btn-ghost btn-sm gap-1" onClick={() => {
+        <button use:ripple class="btn btn-ghost btn-sm gap-1" onClick={() => {
           profileManager.loadFromStorage();
           setProfiles(profileManager.getProfiles());
         }}>
