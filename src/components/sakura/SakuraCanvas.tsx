@@ -1,16 +1,16 @@
 // ==========================================
-// SakuraCanvas — 樱花树实时渲染引擎 v2
-// 分形树 + 风场 + 花瓣飘落 + 地面堆积
+// SakuraCanvas — 典藏版 · 秒速五厘米
+// 新海诚风格：Godray + Bokeh + 逆光 + 空气透视
 // ==========================================
 
 import { onMount, onCleanup, createEffect } from "solid-js";
 import { useSettingsStore } from "@/stores/settings";
 
-/* ───────── 类型定义 ───────── */
+/* ═══════════════ 类型 ═══════════════ */
 
 interface TreeNode {
   depth: number;
-  angle: number;          // 相对于父枝的角度
+  angle: number;
   length: number;
   thickness: number;
   swayOffset: number;
@@ -19,7 +19,6 @@ interface TreeNode {
   hasBlossom: boolean;
   blossomRadius: number;
   blossomPhase: number;
-  // 运行时：摇曳后的世界坐标（每帧更新）
   worldX1: number; worldY1: number;
   worldX2: number; worldY2: number;
 }
@@ -27,492 +26,599 @@ interface TreeNode {
 interface Petal {
   x: number; y: number;
   vx: number; vy: number;
-  rotation: number; rotationSpeed: number;
+  rotation: number; rotSpeed: number;
   size: number; opacity: number;
-  colorIndex: number;
+  colorIdx: number;
   age: number; maxAge: number;
   driftPhase: number; driftFreq: number;
   flipAngle: number; flipSpeed: number;
-  noiseOffsetX: number; noiseOffsetY: number;
+  nxOff: number; nyOff: number;
+  // 层深 0=近 1=中 2=远
+  layer: number;
   grounded: boolean; groundY: number;
-  groundRotation: number; groundOpacity: number;
+  groundRot: number; groundAlpha: number;
+}
+
+interface BokehCircle {
+  x: number; y: number;
+  vx: number; vy: number;
+  radius: number;
+  opacity: number;
+  hue: number; // 0=pink 1=gold 2=white
+  phase: number;
+  freq: number;
+  maxAge: number; age: number;
+}
+
+interface Godray {
+  x: number; // 光柱底部x
+  topX: number; // 光柱顶部x（偏移）
+  width: number;
+  opacity: number;
+  phase: number;
+  freq: number;
 }
 
 interface WindGust {
-  startTime: number; duration: number;
-  strength: number;
+  start: number; dur: number; str: number;
 }
 
-/* ───────── 常量 ───────── */
+/* ═══════════════ 常量 ═══════════════ */
 
-const MAX_PETALS = 200;
-const MAX_GROUNDED = 80;
-const GROUND_OFFSET = 40;
+const MAX_PETALS = 280;
+const MAX_GROUNDED = 100;
+const MAX_BOKEH = 18;
+const GROUND_H = 50;
+// 秒速5厘米 ≈ 每16ms帧 0.08px（在屏幕比例下约0.4-1.2px/帧）
+const FALL_SPEED_BASE = 0.35;
 
-const PETAL_PALETTES = [
-  { r: 255, g: 192, b: 203 },
-  { r: 255, g: 175, b: 190 },
-  { r: 255, g: 150, b: 175 },
-  { r: 255, g: 130, b: 165 },
-  { r: 255, g: 105, b: 155 },
-  { r: 255, g: 183, b: 197 },
-  { r: 248, g: 200, b: 220 },
-  { r: 255, g: 160, b: 185 },
+// 新海诚色板 — 8种樱花色（暖粉→冷紫）
+const PETAL_COLORS = [
+  { r: 255, g: 200, b: 210 }, // 暖白粉
+  { r: 255, g: 185, b: 200 }, // 樱粉
+  { r: 255, g: 170, b: 195 }, // 淡玫
+  { r: 255, g: 155, b: 185 }, // 玫粉
+  { r: 255, g: 140, b: 178 }, // 深粉
+  { r: 250, g: 195, b: 215 }, // 桃粉
+  { r: 242, g: 210, b: 230 }, // 冷粉偏紫
+  { r: 235, g: 200, b: 225 }, // 淡紫粉
 ];
 
-/* ───────── 简易噪声 ───────── */
+/* ═══════════════ 噪声 ═══════════════ */
 
-const PERM: number[] = [];
-(function initPerm() {
-  for (let i = 0; i < 256; i++) PERM[i] = i;
+const P: number[] = [];
+(function() {
+  for (let i = 0; i < 256; i++) P[i] = i;
   for (let i = 255; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [PERM[i], PERM[j]] = [PERM[j], PERM[i]];
+    [P[i], P[j]] = [P[j], P[i]];
   }
-  for (let i = 0; i < 256; i++) PERM[256 + i] = PERM[i];
+  for (let i = 0; i < 256; i++) P[256 + i] = P[i];
 })();
 
-function fade(t: number) { return t * t * t * (t * (t * 6 - 15) + 10); }
-function lerpN(a: number, b: number, t: number) { return a + t * (b - a); }
+const fd = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+const lr = (a: number, b: number, t: number) => a + t * (b - a);
 
-function noise2D(x: number, y: number): number {
-  const X = Math.floor(x) & 255;
-  const Y = Math.floor(y) & 255;
-  const xf = x - Math.floor(x);
-  const yf = y - Math.floor(y);
-  const u = fade(xf);
-  const v = fade(yf);
-  const aa = PERM[PERM[X] + Y];
-  const ab = PERM[PERM[X] + Y + 1];
-  const ba = PERM[PERM[X + 1] + Y];
-  const bb = PERM[PERM[X + 1] + Y + 1];
-  const grad = (hash: number, dx: number, dy: number) => {
-    const h = hash & 3;
-    return (h === 0 ? dx + dy : h === 1 ? -dx + dy : h === 2 ? dx - dy : -dx - dy);
-  };
-  return lerpN(
-    lerpN(grad(aa, xf, yf), grad(ba, xf - 1, yf), u),
-    lerpN(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u),
-    v
+function n2d(x: number, y: number): number {
+  const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+  const xf = x - Math.floor(x), yf = y - Math.floor(y);
+  const u = fd(xf), v = fd(yf);
+  const g = (h: number, dx: number, dy: number) =>
+    (h & 3) === 0 ? dx + dy : (h & 3) === 1 ? -dx + dy : (h & 3) === 2 ? dx - dy : -dx - dy;
+  return lr(
+    lr(g(P[P[X]+Y],xf,yf), g(P[P[X+1]+Y],xf-1,yf), u),
+    lr(g(P[P[X]+Y+1],xf,yf-1), g(P[P[X+1]+Y+1],xf-1,yf-1), u), v
   );
 }
 
-/* ───────── 分形树生成 ───────── */
+/* ═══════════════ 分形树 ═══════════════ */
 
-function generateTree(startX: number, startY: number, trunkLength: number, maxDepth: number): TreeNode {
-  function branch(angle: number, length: number, depth: number, thickness: number): TreeNode {
-    const node: TreeNode = {
-      depth, angle, length, thickness,
+function makeTree(sx: number, sy: number, len: number, maxD: number): TreeNode {
+  function br(angle: number, length: number, depth: number, thick: number): TreeNode {
+    const n: TreeNode = {
+      depth, angle, length, thickness: thick,
       swayOffset: Math.random() * Math.PI * 2,
-      swaySpeed: 0.4 + Math.random() * 0.6,
+      swaySpeed: 0.35 + Math.random() * 0.55,
       children: [],
-      hasBlossom: depth >= maxDepth - 2,
-      blossomRadius: depth >= maxDepth - 1 ? 6 + Math.random() * 8 : 3 + Math.random() * 5,
+      hasBlossom: depth >= maxD - 2,
+      blossomRadius: depth >= maxD - 1 ? 7 + Math.random() * 10 : 4 + Math.random() * 6,
       blossomPhase: Math.random() * Math.PI * 2,
-      worldX1: 0, worldY1: 0,
-      worldX2: 0, worldY2: 0,
+      worldX1: 0, worldY1: 0, worldX2: 0, worldY2: 0,
     };
-
-    if (depth < maxDepth) {
-      const childCount = depth < 2 ? 2 : (Math.random() > 0.3 ? 2 : 3);
-      const spread = depth < 2 ? 0.4 : 0.5 + Math.random() * 0.25;
-      const shrink = 0.6 + Math.random() * 0.13;
-
-      for (let i = 0; i < childCount; i++) {
-        const t = childCount === 1 ? 0 : (i / (childCount - 1)) * 2 - 1;
-        const childAngle = angle + t * spread + (Math.random() - 0.5) * 0.18;
-        const childLength = length * shrink * (0.85 + Math.random() * 0.3);
-        const childThickness = thickness * 0.62;
-        node.children.push(branch(childAngle, childLength, depth + 1, childThickness));
+    if (depth < maxD) {
+      const cc = depth < 2 ? 2 : (Math.random() > 0.35 ? 2 : 3);
+      const sp = depth < 2 ? 0.38 : 0.48 + Math.random() * 0.22;
+      const sh = 0.58 + Math.random() * 0.14;
+      for (let i = 0; i < cc; i++) {
+        const t = cc === 1 ? 0 : (i / (cc - 1)) * 2 - 1;
+        n.children.push(br(
+          angle + t * sp + (Math.random() - 0.5) * 0.2,
+          length * sh * (0.82 + Math.random() * 0.36),
+          depth + 1, thick * 0.6
+        ));
       }
     }
-
-    return node;
+    return n;
   }
-
-  const root = branch(-Math.PI / 2, trunkLength, 0, trunkLength * 0.055);
-  // 设置根节点的世界坐标起点
-  root.worldX1 = startX;
-  root.worldY1 = startY;
+  const root = br(-Math.PI / 2, len, 0, len * 0.05);
+  root.worldX1 = sx; root.worldY1 = sy;
   return root;
 }
 
-/* ───────── 花瓣工厂 ───────── */
+function getTips(n: TreeNode, out: TreeNode[] = []): TreeNode[] {
+  if (!n.children.length) out.push(n);
+  else n.children.forEach(c => getTips(c, out));
+  return out;
+}
 
-function createPetal(x: number, y: number, windAngle: number): Petal {
-  const angle = windAngle + (Math.random() - 0.5) * 1.0;
-  const speed = 0.2 + Math.random() * 0.6;
+/* ═══════════════ 工厂 ═══════════════ */
+
+function mkPetal(x: number, y: number, wAngle: number, layer: number): Petal {
+  const a = wAngle + (Math.random() - 0.5) * 0.8;
+  const sp = 0.15 + Math.random() * 0.35;
+  const sizeBase = layer === 0 ? 6 + Math.random() * 9 : layer === 1 ? 4 + Math.random() * 6 : 2.5 + Math.random() * 4;
   return {
     x, y,
-    vx: Math.cos(angle) * speed * 0.4,
-    vy: 0.15 + Math.random() * 0.4,
+    vx: Math.cos(a) * sp * 0.3,
+    vy: FALL_SPEED_BASE + Math.random() * 0.25,
     rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.04,
-    size: 5 + Math.random() * 8,
-    opacity: 0.5 + Math.random() * 0.5,
-    colorIndex: Math.floor(Math.random() * PETAL_PALETTES.length),
+    rotSpeed: (Math.random() - 0.5) * 0.035,
+    size: sizeBase,
+    opacity: layer === 2 ? 0.15 + Math.random() * 0.2 : 0.4 + Math.random() * 0.55,
+    colorIdx: Math.floor(Math.random() * PETAL_COLORS.length),
     age: 0,
-    maxAge: 500 + Math.random() * 700,
+    maxAge: 600 + Math.random() * 800,
     driftPhase: Math.random() * Math.PI * 2,
-    driftFreq: 0.008 + Math.random() * 0.015,
+    driftFreq: 0.006 + Math.random() * 0.012,
     flipAngle: Math.random() * Math.PI * 2,
-    flipSpeed: 0.02 + Math.random() * 0.04,
-    noiseOffsetX: Math.random() * 1000,
-    noiseOffsetY: Math.random() * 1000,
-    grounded: false, groundY: 0,
-    groundRotation: 0, groundOpacity: 0,
+    flipSpeed: 0.018 + Math.random() * 0.035,
+    nxOff: Math.random() * 1000, nyOff: Math.random() * 1000,
+    layer,
+    grounded: false, groundY: 0, groundRot: 0, groundAlpha: 0,
   };
 }
 
-/* ───────── 收集末端节点 ───────── */
-
-function collectTips(node: TreeNode, tips: TreeNode[] = []): TreeNode[] {
-  if (node.children.length === 0) {
-    tips.push(node);
-  } else {
-    for (const child of node.children) {
-      collectTips(child, tips);
-    }
-  }
-  return tips;
+function mkBokeh(w: number, h: number): BokehCircle {
+  return {
+    x: Math.random() * w,
+    y: Math.random() * h * 0.8,
+    vx: (Math.random() - 0.5) * 0.15,
+    vy: (Math.random() - 0.5) * 0.1 - 0.05,
+    radius: 12 + Math.random() * 35,
+    opacity: 0.03 + Math.random() * 0.08,
+    hue: Math.floor(Math.random() * 3),
+    phase: Math.random() * Math.PI * 2,
+    freq: 0.005 + Math.random() * 0.01,
+    maxAge: 800 + Math.random() * 1200, age: 0,
+  };
 }
 
-/* ───────── 主组件 ───────── */
+/* ═══════════════ 主组件 ═══════════════ */
 
 export default function SakuraCanvas() {
   const settingsStore = useSettingsStore();
   let canvasRef: HTMLCanvasElement | undefined;
-  let animFrame: number;
+  let raf: number;
   let petals: Petal[] = [];
-  let groundedPetals: Petal[] = [];
-  let treeRoot: TreeNode | null = null;
+  let grounded: Petal[] = [];
+  let bokehs: BokehCircle[] = [];
+  let godrays: Godray[] = [];
+  let root: TreeNode | null = null;
   let tips: TreeNode[] = [];
-  let windGusts: WindGust[] = [];
-  let time = 0;
-  let spawnAccum = 0;
+  let gusts: WindGust[] = [];
+  let t = 0;
+  let spawnAcc = 0;
+  let bokehAcc = 0;
 
-  const isEnabled = () => settingsStore.settings().sakura_skin;
+  const on = () => settingsStore.settings().sakura_skin;
 
   onMount(() => {
-    const canvas = canvasRef;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const cvs = canvasRef;
+    if (!cvs) return;
+    const ctx = cvs.getContext("2d")!;
+    let lw = 0, lh = 0;
 
-    let lastW = 0;
-    let lastH = 0;
-
-    const rebuildTree = () => {
-      const w = canvas!.width;
-      const h = canvas!.height;
-      const trunkLen = Math.min(h * 0.24, 220);
-      // 树位于右下区域
-      const treeX = w * 0.82;
-      const treeY = h - GROUND_OFFSET;
-      treeRoot = generateTree(treeX, treeY, trunkLen, 7);
-      tips = collectTips(treeRoot);
+    const rebuild = () => {
+      const w = cvs!.width, h = cvs!.height;
+      const tl = Math.min(h * 0.28, 260);
+      root = makeTree(w * 0.83, h - GROUND_H, tl, 8);
+      root.worldX1 = w * 0.83; root.worldY1 = h - GROUND_H;
+      tips = getTips(root);
+      // Godrays — 4-6束光柱从树冠区域射出
+      godrays = [];
+      const rayCount = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < rayCount; i++) {
+        godrays.push({
+          x: w * 0.75 + Math.random() * w * 0.2,
+          topX: w * 0.6 + Math.random() * w * 0.3,
+          width: 30 + Math.random() * 60,
+          opacity: 0.02 + Math.random() * 0.03,
+          phase: Math.random() * Math.PI * 2,
+          freq: 0.2 + Math.random() * 0.3,
+        });
+      }
     };
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      if (canvas.width !== lastW || canvas.height !== lastH) {
-        lastW = canvas.width;
-        lastH = canvas.height;
-        rebuildTree();
-      }
+      cvs.width = window.innerWidth;
+      cvs.height = window.innerHeight;
+      if (cvs.width !== lw || cvs.height !== lh) { lw = cvs.width; lh = cvs.height; rebuild(); }
     };
     resize();
     window.addEventListener("resize", resize);
 
-    const isDark = () => document.documentElement.getAttribute("data-theme") === "dark";
+    const dark = () => document.documentElement.getAttribute("data-theme") === "dark";
 
-    // 风场
-    const getWind = (t: number): { strength: number; angle: number } => {
-      const base = noise2D(t * 0.25, 0.5) * 2;
-      let gustStr = 0;
-      for (const g of windGusts) {
-        const elapsed = t - g.startTime;
-        if (elapsed >= 0 && elapsed < g.duration) {
-          gustStr += g.strength * Math.sin((elapsed / g.duration) * Math.PI);
-        }
+    /* ─── 风场 ─── */
+    const wind = (tt: number) => {
+      const base = n2d(tt * 0.2, 0.7) * 1.8;
+      let gs = 0;
+      for (const g of gusts) {
+        const e = tt - g.start;
+        if (e >= 0 && e < g.dur) gs += g.str * Math.sin((e / g.dur) * Math.PI);
       }
-      return {
-        strength: base + gustStr,
-        angle: -0.25 + noise2D(0.3, t * 0.15) * 0.35,
-      };
+      return { str: base + gs, ang: -0.2 + n2d(0.4, tt * 0.12) * 0.3 };
+    };
+    const maybeGust = () => {
+      if (gusts.length < 2 && Math.random() < 0.005)
+        gusts.push({ start: t, dur: 100 + Math.random() * 250, str: 1.5 + Math.random() * 3 });
+      gusts = gusts.filter(g => t - g.start < g.dur);
     };
 
-    const maybeSpawnGust = () => {
-      if (windGusts.length < 2 && Math.random() < 0.004) {
-        windGusts.push({
-          startTime: time,
-          duration: 120 + Math.random() * 250,
-          strength: 1.5 + Math.random() * 3,
-        });
-      }
-      windGusts = windGusts.filter(g => time - g.startTime < g.duration);
-    };
-
-    // 递归绘制树 + 更新世界坐标
-    const drawNode = (
-      node: TreeNode,
-      parentEndX: number, parentEndY: number,
-      parentAngle: number,
-      t: number,
-      windStr: number,
-      dark: boolean
+    /* ─── 绘制树 ─── */
+    const drawTree = (
+      n: TreeNode, px: number, py: number, pAng: number,
+      tt: number, ws: number, dk: boolean
     ) => {
-      // 本枝绝对角度 = 父枝角度 + 自身相对角度 + 风摇曳
-      const swayAmount = windStr * (1 / (node.depth + 1)) * 0.12;
-      const sway = Math.sin(t * node.swaySpeed + node.swayOffset) * swayAmount;
-      const absAngle = parentAngle + node.angle + sway;
+      const sw = Math.sin(tt * n.swaySpeed + n.swayOffset) * ws * (1 / (n.depth + 1)) * 0.1;
+      const absA = pAng + n.angle + sw;
+      n.worldX1 = px; n.worldY1 = py;
+      n.worldX2 = px + Math.cos(absA) * n.length;
+      n.worldY2 = py + Math.sin(absA) * n.length;
 
-      // 起点 = 父枝终点
-      node.worldX1 = parentEndX;
-      node.worldY1 = parentEndY;
-
-      // 终点
-      node.worldX2 = node.worldX1 + Math.cos(absAngle) * node.length;
-      node.worldY2 = node.worldY1 + Math.sin(absAngle) * node.length;
-
-      // 绘制枝干
+      // 逆光下枝干偏暗（剪影感）
       ctx.beginPath();
-      ctx.moveTo(node.worldX1, node.worldY1);
-      ctx.lineTo(node.worldX2, node.worldY2);
-      ctx.lineWidth = node.thickness;
+      ctx.moveTo(n.worldX1, n.worldY1);
+      ctx.lineTo(n.worldX2, n.worldY2);
+      ctx.lineWidth = n.thickness;
       ctx.lineCap = "round";
-
-      if (node.depth < 2) {
-        ctx.strokeStyle = dark ? "rgba(75,55,45,0.92)" : "rgba(95,68,48,0.88)";
-      } else if (node.depth < 4) {
-        ctx.strokeStyle = dark ? "rgba(85,62,50,0.7)" : "rgba(105,78,58,0.75)";
+      if (n.depth < 2) {
+        ctx.strokeStyle = dk ? "rgba(45,30,25,0.95)" : "rgba(55,35,28,0.92)";
+      } else if (n.depth < 5) {
+        ctx.strokeStyle = dk ? "rgba(55,38,30,0.75)" : "rgba(65,45,35,0.78)";
       } else {
-        ctx.strokeStyle = dark ? "rgba(95,70,55,0.5)" : "rgba(115,85,65,0.6)";
+        ctx.strokeStyle = dk ? "rgba(65,45,35,0.5)" : "rgba(80,55,40,0.55)";
       }
       ctx.stroke();
 
-      // 末端花簇
-      if (node.hasBlossom && node.depth >= 3) {
-        const pulse = Math.sin(t * 0.7 + node.blossomPhase) * 0.12 + 1;
-        const r = node.blossomRadius * pulse;
-        const alpha = dark ? 0.45 : 0.65;
-
-        for (let i = 0; i < 3; i++) {
-          const a = (i / 3) * Math.PI * 2 + node.blossomPhase;
-          const ox = Math.cos(a) * r * 0.35;
-          const oy = Math.sin(a) * r * 0.35;
-          const grad = ctx.createRadialGradient(
-            node.worldX2 + ox, node.worldY2 + oy, 0,
-            node.worldX2 + ox, node.worldY2 + oy, r * 0.75
+      // 花簇 — 更大更蓬松，逆光下发亮
+      if (n.hasBlossom && n.depth >= 3) {
+        const pulse = Math.sin(tt * 0.6 + n.blossomPhase) * 0.1 + 1;
+        const r = n.blossomRadius * pulse;
+        const ba = dk ? 0.35 : 0.55;
+        // 多层叠加的花簇
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 + n.blossomPhase;
+          const ox = Math.cos(a) * r * 0.4;
+          const oy = Math.sin(a) * r * 0.4;
+          const gr = ctx.createRadialGradient(
+            n.worldX2 + ox, n.worldY2 + oy, 0,
+            n.worldX2 + ox, n.worldY2 + oy, r
           );
-          grad.addColorStop(0, `rgba(255,205,215,${alpha})`);
-          grad.addColorStop(0.5, `rgba(255,175,195,${alpha * 0.65})`);
-          grad.addColorStop(1, `rgba(255,155,180,0)`);
+          // 逆光透亮 — 中心更亮
+          gr.addColorStop(0, `rgba(255,235,240,${ba * 0.9})`);
+          gr.addColorStop(0.3, `rgba(255,210,220,${ba * 0.7})`);
+          gr.addColorStop(0.7, `rgba(255,180,200,${ba * 0.4})`);
+          gr.addColorStop(1, "rgba(255,170,195,0)");
           ctx.beginPath();
-          ctx.arc(node.worldX2 + ox, node.worldY2 + oy, r * 0.75, 0, Math.PI * 2);
-          ctx.fillStyle = grad;
+          ctx.arc(n.worldX2 + ox, n.worldY2 + oy, r, 0, Math.PI * 2);
+          ctx.fillStyle = gr;
           ctx.fill();
         }
+        // 花簇中心发光（逆光穿透感）
+        const glowGr = ctx.createRadialGradient(
+          n.worldX2, n.worldY2, 0,
+          n.worldX2, n.worldY2, r * 0.6
+        );
+        const ga = dk ? 0.08 : 0.12;
+        glowGr.addColorStop(0, `rgba(255,245,250,${ga})`);
+        glowGr.addColorStop(1, "rgba(255,220,235,0)");
+        ctx.beginPath();
+        ctx.arc(n.worldX2, n.worldY2, r * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = glowGr;
+        ctx.fill();
       }
 
-      // 递归子枝
-      for (const child of node.children) {
-        drawNode(child, node.worldX2, node.worldY2, absAngle, t, windStr, dark);
-      }
+      for (const c of n.children) drawTree(c, n.worldX2, n.worldY2, absA, tt, ws, dk);
     };
 
-    // 绘制单片花瓣
-    const drawPetal = (p: Petal, dark: boolean) => {
-      const c = PETAL_PALETTES[p.colorIndex];
-      const alpha = dark ? p.opacity * 0.6 : p.opacity;
-      const flipScale = Math.cos(p.flipAngle) * 0.4 + 0.6;
+    /* ─── 绘制花瓣 ─── */
+    const drawPetal = (p: Petal, dk: boolean) => {
+      const c = PETAL_COLORS[p.colorIdx];
+      const alpha = dk ? p.opacity * 0.55 : p.opacity;
+      const flip = Math.cos(p.flipAngle) * 0.35 + 0.65;
+
+      // 远景花瓣偏蓝（大气散射）
+      let cr = c.r, cg = c.g, cb = c.b;
+      if (p.layer === 2) { cr = Math.min(c.r + 10, 255); cg = Math.min(c.g + 5, 255); cb = Math.min(c.b + 25, 255); }
 
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rotation);
-      ctx.scale(flipScale, 1);
+      ctx.scale(flip, 1);
       ctx.globalAlpha = alpha;
 
-      // 水滴形花瓣
       const s = p.size;
+      // 心形花瓣（更接近真实樱花）
       ctx.beginPath();
-      ctx.moveTo(0, -s * 0.5);
-      ctx.bezierCurveTo(s * 0.35, -s * 0.5, s * 0.4, 0, 0, s * 0.5);
-      ctx.bezierCurveTo(-s * 0.4, 0, -s * 0.35, -s * 0.5, 0, -s * 0.5);
+      ctx.moveTo(0, -s * 0.45);
+      ctx.bezierCurveTo(s * 0.25, -s * 0.5, s * 0.42, -s * 0.25, s * 0.15, s * 0.15);
+      ctx.bezierCurveTo(s * 0.05, s * 0.4, 0, s * 0.5, 0, s * 0.5);
+      ctx.bezierCurveTo(0, s * 0.5, -s * 0.05, s * 0.4, -s * 0.15, s * 0.15);
+      ctx.bezierCurveTo(-s * 0.42, -s * 0.25, -s * 0.25, -s * 0.5, 0, -s * 0.45);
 
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.55);
-      const cr = Math.min(c.r + 20, 255);
-      const cg = Math.min(c.g + 20, 255);
-      const cb = Math.min(c.b + 20, 255);
-      grad.addColorStop(0, `rgba(${cr},${cg},${cb},0.95)`);
-      grad.addColorStop(0.5, `rgba(${c.r},${c.g},${c.b},0.75)`);
-      grad.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0.25)`);
-      ctx.fillStyle = grad;
+      // 逆光透光感 — 花瓣中心偏白
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.5);
+      gr.addColorStop(0, `rgba(${Math.min(cr+40,255)},${Math.min(cg+40,255)},${Math.min(cb+30,255)},0.95)`);
+      gr.addColorStop(0.4, `rgba(${cr},${cg},${cb},0.8)`);
+      gr.addColorStop(1, `rgba(${cr},${cg},${cb},0.2)`);
+      ctx.fillStyle = gr;
       ctx.fill();
 
-      ctx.shadowColor = `rgba(${c.r},${c.g},${c.b},0.12)`;
-      ctx.shadowBlur = 3;
+      // 逆光边缘高光
+      ctx.shadowColor = `rgba(255,230,240,0.08)`;
+      ctx.shadowBlur = 2;
       ctx.restore();
     };
 
-    // 主渲染循环
-    const draw = () => {
-      if (!canvas || !ctx) return;
-      const w = canvas.width;
-      const h = canvas.height;
-      const dark = isDark();
-      const enabled = isEnabled();
+    /* ═══════════════ 主循环 ═══════════════ */
 
+    const frame = () => {
+      if (!cvs) return;
+      const w = cvs.width, h = cvs.height;
+      const dk = dark();
+      const enabled = on();
       ctx.clearRect(0, 0, w, h);
+      t += 0.016;
 
-      time += 0.016;
+      if (!enabled) { raf = requestAnimationFrame(frame); return; }
 
-      if (!enabled) {
-        animFrame = requestAnimationFrame(draw);
-        return;
-      }
+      maybeGust();
+      const wd = wind(t);
 
-      // 风场
-      maybeSpawnGust();
-      const wind = getWind(time);
-
-      // ─── 氛围背景光 ───
-      // 底部樱花色渐变地面
-      const groundGrad = ctx.createLinearGradient(0, h - GROUND_OFFSET - 30, 0, h);
-      if (dark) {
-        groundGrad.addColorStop(0, "rgba(40,18,28,0)");
-        groundGrad.addColorStop(0.3, "rgba(50,22,32,0.25)");
-        groundGrad.addColorStop(1, "rgba(60,28,38,0.45)");
+      /* ─── 1. 天空渐变（新海诚逆光暖粉天空）─── */
+      const skyGr = ctx.createLinearGradient(0, 0, 0, h);
+      if (dk) {
+        skyGr.addColorStop(0, "rgba(25,12,35,0.06)");
+        skyGr.addColorStop(0.4, "rgba(35,18,40,0.04)");
+        skyGr.addColorStop(1, "rgba(45,22,35,0.08)");
       } else {
-        groundGrad.addColorStop(0, "rgba(255,235,238,0)");
-        groundGrad.addColorStop(0.3, "rgba(255,225,230,0.25)");
-        groundGrad.addColorStop(1, "rgba(255,215,220,0.45)");
+        skyGr.addColorStop(0, "rgba(255,235,245,0.08)");
+        skyGr.addColorStop(0.3, "rgba(255,225,240,0.06)");
+        skyGr.addColorStop(0.6, "rgba(255,215,230,0.04)");
+        skyGr.addColorStop(1, "rgba(255,200,220,0.07)");
       }
-      ctx.fillStyle = groundGrad;
-      ctx.fillRect(0, h - GROUND_OFFSET - 30, w, GROUND_OFFSET + 30);
+      ctx.fillStyle = skyGr;
+      ctx.fillRect(0, 0, w, h);
 
-      // ─── 绘制树 ───
-      if (treeRoot) {
-        drawNode(treeRoot, treeRoot.worldX1, treeRoot.worldY1, 0, time, wind.strength, dark);
-      }
-
-      // ─── 产生花瓣 ───
-      spawnAccum += 0.5 + wind.strength * 0.3;
-      while (spawnAccum >= 1 && petals.length < MAX_PETALS) {
-        spawnAccum -= 1;
-        if (tips.length > 0) {
-          const tip = tips[Math.floor(Math.random() * tips.length)];
-          const ox = (Math.random() - 0.5) * tip.blossomRadius * 2;
-          const oy = (Math.random() - 0.5) * tip.blossomRadius * 2;
-          petals.push(createPetal(tip.worldX2 + ox, tip.worldY2 + oy, wind.angle));
+      /* ─── 2. Godray 丁达尔光柱 ─── */
+      if (!dk) {
+        for (const ray of godrays) {
+          const pulse = (Math.sin(t * ray.freq + ray.phase) * 0.3 + 0.7);
+          const a = ray.opacity * pulse;
+          const gr = ctx.createLinearGradient(ray.topX, 0, ray.x, h);
+          gr.addColorStop(0, `rgba(255,245,235,0)`);
+          gr.addColorStop(0.15, `rgba(255,240,230,${a * 0.3})`);
+          gr.addColorStop(0.4, `rgba(255,230,220,${a})`);
+          gr.addColorStop(0.7, `rgba(255,220,215,${a * 0.6})`);
+          gr.addColorStop(1, `rgba(255,210,210,0)`);
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(ray.topX - ray.width * 0.3, 0);
+          ctx.lineTo(ray.topX + ray.width * 0.3, 0);
+          ctx.lineTo(ray.x + ray.width, h);
+          ctx.lineTo(ray.x - ray.width, h);
+          ctx.closePath();
+          ctx.fillStyle = gr;
+          ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        // 深色模式 — 更微弱的光柱
+        for (const ray of godrays) {
+          const pulse = (Math.sin(t * ray.freq + ray.phase) * 0.3 + 0.7);
+          const a = ray.opacity * pulse * 0.35;
+          const gr = ctx.createLinearGradient(ray.topX, 0, ray.x, h);
+          gr.addColorStop(0, `rgba(200,180,200,0)`);
+          gr.addColorStop(0.3, `rgba(200,180,200,${a * 0.4})`);
+          gr.addColorStop(0.6, `rgba(180,160,180,${a})`);
+          gr.addColorStop(1, `rgba(160,140,160,0)`);
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(ray.topX - ray.width * 0.3, 0);
+          ctx.lineTo(ray.topX + ray.width * 0.3, 0);
+          ctx.lineTo(ray.x + ray.width, h);
+          ctx.lineTo(ray.x - ray.width, h);
+          ctx.closePath();
+          ctx.fillStyle = gr;
+          ctx.fill();
+          ctx.restore();
         }
       }
 
-      // 远处花瓣（营造景深）
-      if (petals.length < MAX_PETALS && Math.random() < 0.015) {
-        const p = createPetal(Math.random() * w, -10, wind.angle);
-        p.size *= 0.5;
-        p.opacity *= 0.35;
-        petals.push(p);
+      /* ─── 3. Bokeh 散景光斑 ─── */
+      bokehAcc += 0.02;
+      if (bokehs.length < MAX_BOKEH && bokehAcc >= 1) {
+        bokehAcc -= 1;
+        bokehs.push(mkBokeh(w, h));
+      }
+      const aliveBokeh: BokehCircle[] = [];
+      for (const b of bokehs) {
+        b.x += b.vx;
+        b.y += b.vy + Math.sin(t * b.freq + b.phase) * 0.05;
+        b.age++;
+        // 淡入淡出
+        let ba = b.opacity;
+        if (b.age < 60) ba *= b.age / 60;
+        if (b.age > b.maxAge - 120) ba *= (b.maxAge - b.age) / 120;
+        ba *= (Math.sin(t * b.freq * 2 + b.phase) * 0.3 + 0.7); // 呼吸
+
+        if (ba < 0.005 || b.age > b.maxAge) continue;
+
+        const colors = dk
+          ? [`rgba(200,160,190,${ba})`, `rgba(180,150,100,${ba})`, `rgba(180,180,200,${ba})`]
+          : [`rgba(255,190,210,${ba})`, `rgba(255,220,150,${ba})`, `rgba(255,250,255,${ba})`];
+        const color = colors[b.hue];
+
+        const gr = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.radius);
+        gr.addColorStop(0, color);
+        gr.addColorStop(0.6, color.replace(/[\d.]+\)$/, `${ba * 0.4})`));
+        gr.addColorStop(1, color.replace(/[\d.]+\)$/, "0)"));
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = gr;
+        ctx.fill();
+
+        aliveBokeh.push(b);
+      }
+      bokehs = aliveBokeh;
+
+      /* ─── 4. 树冠氛围光晕（逆光大范围光晕）─── */
+      if (root) {
+        const cx = root.worldX1;
+        const cy = h * 0.3;
+        const gr = Math.min(w, h) * 0.35;
+        const glowGr = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr);
+        const ga = dk ? 0.025 : 0.05;
+        glowGr.addColorStop(0, `rgba(255,200,220,${ga})`);
+        glowGr.addColorStop(0.4, `rgba(255,190,210,${ga * 0.5})`);
+        glowGr.addColorStop(1, "rgba(255,180,200,0)");
+        ctx.fillStyle = glowGr;
+        ctx.fillRect(cx - gr, cy - gr, gr * 2, gr * 2);
+
+        // 镜头眩光 — 逆光中心亮点
+        const lensR = 60 + Math.sin(t * 0.15) * 15;
+        const lensGr = ctx.createRadialGradient(cx - 20, cy + 30, 0, cx - 20, cy + 30, lensR);
+        const la = dk ? 0.04 : 0.07;
+        lensGr.addColorStop(0, `rgba(255,250,245,${la})`);
+        lensGr.addColorStop(0.3, `rgba(255,240,235,${la * 0.5})`);
+        lensGr.addColorStop(1, "rgba(255,230,225,0)");
+        ctx.fillStyle = lensGr;
+        ctx.beginPath();
+        ctx.arc(cx - 20, cy + 30, lensR, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // ─── 更新和绘制飘落花瓣 ───
+      /* ─── 5. 绘制树 ─── */
+      if (root) {
+        drawTree(root, root.worldX1, root.worldY1, 0, t, wd.str, dk);
+      }
+
+      /* ─── 6. 产生花瓣 ─── */
+      spawnAcc += 0.6 + wd.str * 0.35;
+      while (spawnAcc >= 1 && petals.length < MAX_PETALS) {
+        spawnAcc -= 1;
+        if (tips.length > 0) {
+          const tip = tips[Math.floor(Math.random() * tips.length)];
+          const ox = (Math.random() - 0.5) * tip.blossomRadius * 2.5;
+          const oy = (Math.random() - 0.5) * tip.blossomRadius * 2.5;
+          petals.push(mkPetal(tip.worldX2 + ox, tip.worldY2 + oy, wd.ang, 0));
+        }
+      }
+      // 中景花瓣
+      if (petals.length < MAX_PETALS && Math.random() < 0.03) {
+        petals.push(mkPetal(Math.random() * w, -10, wd.ang, 1));
+      }
+      // 远景花瓣（小、淡、偏蓝）
+      if (petals.length < MAX_PETALS && Math.random() < 0.02) {
+        petals.push(mkPetal(Math.random() * w, -10, wd.ang, 2));
+      }
+
+      /* ─── 7. 更新 & 绘制花瓣 ─── */
       const alive: Petal[] = [];
       for (const p of petals) {
         if (p.grounded) continue;
 
-        const nx = noise2D(p.noiseOffsetX + time * 0.4, p.noiseOffsetY) * 1.2;
-        p.vx += Math.cos(wind.angle) * wind.strength * 0.0025 + nx * 0.008;
-        p.vy += 0.006; // 重力
-        p.vx *= 0.996;
-        p.vy *= 0.998;
+        const nx = n2d(p.nxOff + t * 0.35, p.nyOff) * 1.0;
+        p.vx += Math.cos(wd.ang) * wd.str * 0.002 + nx * 0.006;
+        p.vy += 0.004;
+        p.vx *= 0.997; p.vy *= 0.998;
         p.driftPhase += p.driftFreq;
-        p.vx += Math.sin(p.driftPhase) * 0.015;
+        p.vx += Math.sin(p.driftPhase) * 0.012;
 
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rotation += p.rotationSpeed + wind.strength * 0.004;
+        p.x += p.vx; p.y += p.vy;
+        p.rotation += p.rotSpeed + wd.str * 0.003;
         p.flipAngle += p.flipSpeed;
         p.age++;
+        if (p.age > p.maxAge * 0.75) p.opacity *= 0.997;
 
-        if (p.age > p.maxAge * 0.8) p.opacity *= 0.996;
-
-        // 落地
-        const groundLine = h - GROUND_OFFSET + Math.random() * 10;
-        if (p.y >= groundLine) {
+        const gl = h - GROUND_H + Math.random() * 8;
+        if (p.y >= gl) {
           p.grounded = true;
-          p.groundY = groundLine;
-          p.groundRotation = p.rotation;
-          p.groundOpacity = p.opacity * 0.65;
-          if (groundedPetals.length < MAX_GROUNDED) {
-            groundedPetals.push({ ...p });
-          }
+          p.groundY = gl; p.groundRot = p.rotation;
+          p.groundAlpha = p.opacity * 0.6;
+          if (grounded.length < MAX_GROUNDED) grounded.push({ ...p });
           continue;
         }
+        if (p.x < -150 || p.x > w + 150 || p.y > h + 50 || p.opacity < 0.03) continue;
 
-        if (p.x < -120 || p.x > w + 120 || p.y > h + 50 || p.opacity < 0.04) continue;
-
-        drawPetal(p, dark);
+        drawPetal(p, dk);
         alive.push(p);
       }
       petals = alive;
 
-      // ─── 地面花瓣 ───
-      for (let i = groundedPetals.length - 1; i >= 0; i--) {
-        const gp = groundedPetals[i];
-        gp.groundOpacity *= 0.9993;
-        if (gp.groundOpacity < 0.025) { groundedPetals.splice(i, 1); continue; }
-        const c = PETAL_PALETTES[gp.colorIndex];
-        const a = dark ? gp.groundOpacity * 0.35 : gp.groundOpacity * 0.55;
+      /* ─── 8. 地面花瓣 ─── */
+      for (let i = grounded.length - 1; i >= 0; i--) {
+        const gp = grounded[i];
+        gp.groundAlpha *= 0.9992;
+        if (gp.groundAlpha < 0.02) { grounded.splice(i, 1); continue; }
+        const c = PETAL_COLORS[gp.colorIdx];
+        const a = dk ? gp.groundAlpha * 0.3 : gp.groundAlpha * 0.5;
         ctx.save();
         ctx.translate(gp.x, gp.groundY);
-        ctx.rotate(gp.groundRotation);
-        ctx.scale(1, 0.3);
+        ctx.rotate(gp.groundRot);
+        ctx.scale(1, 0.25);
         ctx.globalAlpha = a;
         ctx.beginPath();
-        ctx.ellipse(0, 0, gp.size * 0.3, gp.size * 0.55, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, gp.size * 0.28, gp.size * 0.5, 0, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${a})`;
         ctx.fill();
         ctx.restore();
       }
 
-      // ─── 树冠氛围光晕 ───
-      if (treeRoot) {
-        const cx = treeRoot.worldX1;
-        const cy = h * 0.35;
-        const glowR = Math.min(w, h) * 0.28;
-        const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
-        const ga = dark ? 0.035 : 0.055;
-        glowGrad.addColorStop(0, `rgba(255,185,205,${ga})`);
-        glowGrad.addColorStop(1, "rgba(255,185,205,0)");
-        ctx.fillStyle = glowGrad;
-        ctx.fillRect(cx - glowR, cy - glowR, glowR * 2, glowR * 2);
+      /* ─── 9. 地面渐变 ─── */
+      const gGr = ctx.createLinearGradient(0, h - GROUND_H - 20, 0, h);
+      if (dk) {
+        gGr.addColorStop(0, "rgba(35,15,22,0)");
+        gGr.addColorStop(0.4, "rgba(42,18,28,0.2)");
+        gGr.addColorStop(1, "rgba(50,22,32,0.35)");
+      } else {
+        gGr.addColorStop(0, "rgba(255,235,240,0)");
+        gGr.addColorStop(0.4, "rgba(255,225,232,0.2)");
+        gGr.addColorStop(1, "rgba(255,215,222,0.35)");
       }
+      ctx.fillStyle = gGr;
+      ctx.fillRect(0, h - GROUND_H - 20, w, GROUND_H + 20);
 
-      animFrame = requestAnimationFrame(draw);
+      /* ─── 10. 电影暗角 ─── */
+      const vigR = Math.max(w, h) * 0.7;
+      const vigGr = ctx.createRadialGradient(w / 2, h / 2, vigR * 0.4, w / 2, h / 2, vigR);
+      const vigA = dk ? 0.12 : 0.06;
+      vigGr.addColorStop(0, "rgba(0,0,0,0)");
+      vigGr.addColorStop(1, `rgba(0,0,0,${vigA})`);
+      ctx.fillStyle = vigGr;
+      ctx.fillRect(0, 0, w, h);
+
+      raf = requestAnimationFrame(frame);
     };
 
-    animFrame = requestAnimationFrame(draw);
-
-    onCleanup(() => {
-      cancelAnimationFrame(animFrame);
-      window.removeEventListener("resize", resize);
-    });
+    raf = requestAnimationFrame(frame);
+    onCleanup(() => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); });
   });
 
-  createEffect(() => {
-    if (isEnabled()) {
-      petals = [];
-      groundedPetals = [];
-    }
-  });
+  createEffect(() => { if (on()) { petals = []; grounded = []; bokehs = []; } });
 
   return (
-    <canvas
-      ref={canvasRef}
-      class="fixed inset-0 z-0 pointer-events-none"
-      style={{ "pointer-events": "none" }}
-    />
+    <canvas ref={canvasRef} class="fixed inset-0 z-0 pointer-events-none" style={{ "pointer-events": "none" }} />
   );
 }
