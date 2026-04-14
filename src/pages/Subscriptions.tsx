@@ -1,443 +1,427 @@
-import { createSignal, createEffect, For, Show } from "solid-js";
+import { createSignal, createEffect, For, Show, onMount } from "solid-js";
 import {
   Plus,
   RefreshCw,
   Trash2,
-  Copy,
-  Check,
-  Download,
   Globe,
-  ArrowUpDown,
   AlertCircle,
-  Info,
+  Check,
+  X,
+  Download,
+  Upload,
+  Clock,
+  Server,
+  RefreshCcw,
 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { formatBytes } from "@/utils/format";
 
-interface Provider {
+// 订阅信息接口
+interface SubscriptionInfo {
   name: string;
-  type: string;
-  vehicleType: string;
-  updatedAt: string;
-  subscriptionInfo?: {
-    Upload: number;
-    Download: number;
-    Total: number;
-    Expire: number;
-  };
+  url: string;
+  interval: number;
+  auto_update: boolean;
+  last_update: string;
+  node_count: number;
+  upload: number;
+  download: number;
+  total: number;
+  expire: number;
+  used: number;
+  remaining: number;
+  usage_percent: number;
 }
 
 export default function Subscriptions() {
   const clash = useClashStore();
-  const [providers, setProviders] = createSignal<[string, Provider][]>([]);
-  const [showModal, setShowModal] = createSignal(false);
-  const [formUrl, setFormUrl] = createSignal("");
-  const [formName, setFormName] = createSignal("");
-  const [copied, setCopied] = createSignal("");
+  const [subscriptions, setSubscriptions] = createSignal<SubscriptionInfo[]>([]);
+  const [loading, setLoading] = createSignal(false);
   const [updating, setUpdating] = createSignal<string | null>(null);
-  const [configText, setConfigText] = createSignal("");
+  const [showAddModal, setShowAddModal] = createSignal(false);
   const [error, setError] = createSignal("");
-  const [step, setStep] = createSignal<"input" | "config">("input");
 
-  const fetchProviders = async () => {
+  // 表单状态
+  const [formName, setFormName] = createSignal("");
+  const [formUrl, setFormUrl] = createSignal("");
+  const [formInterval, setFormInterval] = createSignal(3600);
+  const [formAutoUpdate, setFormAutoUpdate] = createSignal(true);
+
+  // 获取订阅列表
+  const fetchSubscriptions = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${clash.baseUrl()}/providers/proxies`, {
+      const res = await fetch(`${clash.baseUrl()}/subscriptions`, {
         headers: clash.headers(),
       });
       if (res.ok) {
         const data = await res.json();
-        const entries = Object.entries(data.providers || {}) as [string, Provider][];
-        setProviders(entries.filter(([, v]) => v.type === "HTTP" || v.type === "File"));
+        setSubscriptions(data.subscriptions || []);
       }
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error("获取订阅失败:", e);
+    }
+    setLoading(false);
   };
 
-  createEffect(() => {
-    if (clash.connected()) fetchProviders();
-  });
-
-  const updateProvider = async (name: string) => {
+  // 更新单个订阅
+  const updateSubscription = async (name: string) => {
     setUpdating(name);
     try {
-      await fetch(`${clash.baseUrl()}/providers/proxies/${encodeURIComponent(name)}`, {
+      const res = await fetch(`${clash.baseUrl()}/subscriptions/${encodeURIComponent(name)}`, {
         method: "PUT",
         headers: clash.headers(),
       });
-      setTimeout(fetchProviders, 1500);
-    } catch (e) { console.error(e) }
+      if (res.ok) {
+        setTimeout(fetchSubscriptions, 1000);
+      }
+    } catch (e) {
+      console.error("更新订阅失败:", e);
+    }
     setUpdating(null);
   };
 
-  const generateConfig = () => {
+  // 更新所有订阅
+  const updateAllSubscriptions = async () => {
+    setUpdating("all");
+    try {
+      const res = await fetch(`${clash.baseUrl()}/subscriptions`, {
+        method: "POST",
+        headers: clash.headers(),
+      });
+      if (res.ok) {
+        setTimeout(fetchSubscriptions, 1000);
+      }
+    } catch (e) {
+      console.error("更新所有订阅失败:", e);
+    }
+    setUpdating(null);
+  };
+
+  // 添加订阅（通过配置）
+  const addSubscription = () => {
+    const name = formName().trim();
     const url = formUrl().trim();
-    const name = formName().trim() || `sub-${Date.now()}`;
-    if (!url) {
-      setError("请输入订阅链接");
+
+    if (!name || !url) {
+      setError("请填写订阅名称和链接");
       return;
     }
-    setError("");
 
-    const cleanName = name.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
-    const config = `# ===== ${cleanName} 订阅配置 =====
-# 将以下内容添加到 config.yaml 中
-
-proxy-providers:
-  ${cleanName}:
-    type: http
+    // 生成配置文本
+    const config = `subscriptions:
+  - name: "${name}"
     url: "${url}"
-    interval: 3600
-    path: ./providers/${cleanName}.yaml
-    health-check:
-      enable: true
-      interval: 300
-      url: https://www.gstatic.com/generate_204
-      lazy: false
+    interval: ${formInterval()}
+    auto-update: ${formAutoUpdate()}`;
 
-# 在 proxy-groups 中引用此订阅的节点，例如：
-# proxy-groups:
-#   - name: "PROXY"
-#     type: select
-#     use:
-#       - ${cleanName}
-`;
-    setConfigText(config);
-    setStep("config");
-  };
+    // 复制到剪贴板
+    navigator.clipboard.writeText(config);
 
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(id);
-      setTimeout(() => setCopied(""), 2000);
-    } catch {
-      // fallback
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(id);
-      setTimeout(() => setCopied(""), 2000);
-    }
-  };
-
-  const downloadConfig = () => {
-    const blob = new Blob([configText()], { type: "text/yaml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "proxy-provider.yaml";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const openModal = () => {
-    setFormUrl("");
+    // 关闭弹窗
+    setShowAddModal(false);
     setFormName("");
-    setConfigText("");
+    setFormUrl("");
     setError("");
-    setStep("input");
-    setShowModal(true);
+
+    // 提示用户
+    alert("订阅配置已复制到剪贴板，请添加到 config.yaml 文件中");
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setStep("input");
+  // 格式化过期时间
+  const formatExpire = (timestamp: number) => {
+    if (!timestamp || timestamp <= 0) return "永久有效";
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const days = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (days < 0) return "已过期";
+    if (days === 0) return "今天过期";
+    if (days <= 7) return `${days}天后过期`;
+    return date.toLocaleDateString("zh-CN");
   };
 
-  const getTrafficPercent = (info?: { Upload: number; Download: number; Total: number }) => {
-    if (!info?.Total) return 0;
-    return Math.min(100, ((info.Upload + info.Download) / info.Total) * 100);
+  // 获取流量使用颜色
+  const getUsageColor = (percent: number) => {
+    if (percent >= 90) return "text-error";
+    if (percent >= 70) return "text-warning";
+    return "text-success";
   };
 
-  const getExpireDate = (ts: number) => {
-    if (!ts) return "永久";
-    return new Date(ts * 1000).toLocaleDateString("zh-CN");
+  // 获取进度条颜色
+  const getProgressColor = (percent: number) => {
+    if (percent >= 90) return "bg-error";
+    if (percent >= 70) return "bg-warning";
+    return "bg-success";
   };
 
-  const isExpired = (ts: number) => {
-    if (!ts) return false;
-    return ts * 1000 < Date.now();
-  };
+  onMount(() => {
+    if (clash.connected()) {
+      fetchSubscriptions();
+    }
+  });
+
+  createEffect(() => {
+    if (clash.connected()) {
+      fetchSubscriptions();
+    }
+  });
 
   return (
-    <div class="animate-page-in space-y-6">
-      {/* Header */}
-      <div class="flex items-center justify-between">
+    <div class="p-6 max-w-7xl mx-auto">
+      {/* 头部 */}
+      <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">订阅</h1>
-          <p class="text-sm text-base-content/50 mt-0.5">
-            管理代理订阅 · {providers().length} 个订阅源
+          <h1 class="text-2xl font-bold">订阅管理</h1>
+          <p class="text-base-content/60 mt-1">
+            管理代理订阅，自动更新节点配置
           </p>
         </div>
-        <button class="btn btn-primary btn-sm rounded-xl gap-1.5" onClick={openModal}>
-          <Plus size={14} />
-          导入订阅
-        </button>
+        <div class="flex gap-2">
+          <button
+            class="btn btn-outline btn-sm"
+            onClick={updateAllSubscriptions}
+            disabled={updating() === "all"}
+          >
+            <RefreshCcw class="w-4 h-4 mr-1" />
+            {updating() === "all" ? "更新中..." : "更新全部"}
+          </button>
+          <button
+            class="btn btn-primary btn-sm"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus class="w-4 h-4 mr-1" />
+            添加订阅
+          </button>
+        </div>
       </div>
 
-      {/* Providers */}
-      <div class="space-y-3">
-        <For each={providers()}>
-          {([name, provider], i) => (
-            <div
-              class="card bg-base-100 animate-card-in"
-              style={{ "animation-delay": `${i() * 60}ms` }}
-            >
-              <div class="p-4">
-                {/* Top row */}
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Globe size={16} class="text-primary" />
-                    </div>
-                    <div>
-                      <span class="font-medium text-sm">{name}</span>
-                      <div class="flex items-center gap-2 mt-0.5">
-                        <span class="text-[11px] text-base-content/40">
-                          {provider.vehicleType} · {provider.type}
-                        </span>
-                        {provider.updatedAt && (
-                          <span class="text-[11px] text-base-content/30">
-                            更新于 {new Date(provider.updatedAt).toLocaleString("zh-CN")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <button
-                      class={`btn btn-ghost btn-xs btn-square ${updating() === name ? "loading" : ""}`}
-                      onClick={() => updateProvider(name)}
-                      title="更新订阅"
-                    >
-                      <RefreshCw size={14} />
-                    </button>
-                    <button
-                      class="btn btn-ghost btn-xs btn-square"
-                      onClick={() =>
-                        copyToClipboard(
-                          `proxy-providers:\n  ${name}:\n    type: http\n    url: "YOUR_SUB_URL"\n    interval: 3600`,
-                          `ref-${name}`
-                        )
-                      }
-                      title="复制配置引用"
-                    >
-                      {copied() === `ref-${name}` ? (
-                        <Check size={14} class="text-success" />
-                      ) : (
-                        <Copy size={14} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Traffic info */}
-                <Show when={provider.subscriptionInfo}>
-                  {(info) => (
-                    <div class="bg-base-200/40 rounded-lg p-3 space-y-2">
-                      <div class="flex justify-between text-xs">
-                        <span class="text-base-content/60">
-                          已用 {formatBytes(info().Upload + info().Download)}
-                        </span>
-                        <span class="text-base-content/60">
-                          总计 {formatBytes(info().Total)}
-                        </span>
-                      </div>
-                      <progress
-                        class={`progress w-full h-1.5 ${
-                          isExpired(info().Expire)
-                            ? "progress-error"
-                            : getTrafficPercent(info()) > 80
-                            ? "progress-warning"
-                            : "progress-primary"
-                        }`}
-                        value={getTrafficPercent(info())}
-                        max="100"
-                      />
-                      <div class="flex justify-between text-[11px] text-base-content/40">
-                        <span>
-                          剩余{" "}
-                          {info().Total
-                            ? formatBytes(
-                                info().Total - info().Upload - info().Download
-                              )
-                            : "-"}
-                        </span>
-                        <span class={isExpired(info().Expire) ? "text-error font-medium" : ""}>
-                          到期: {getExpireDate(info().Expire)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </Show>
-              </div>
-            </div>
-          )}
-        </For>
-
-        {/* Empty state */}
-        <Show when={providers().length === 0}>
-          <div class="card bg-base-100">
-            <div class="text-center py-16">
-              <div class="w-16 h-16 rounded-2xl bg-base-200 flex items-center justify-center mx-auto mb-4">
-                <Globe size={28} class="text-base-content/20" />
-              </div>
-              <p class="text-sm text-base-content/50 font-medium">暂无订阅源</p>
-              <p class="text-xs text-base-content/30 mt-1 max-w-xs mx-auto">
-                点击"导入订阅"粘贴你的机场订阅链接，自动生成配置
+      {/* 订阅列表 */}
+      <Show
+        when={!loading()}
+        fallback={
+          <div class="flex items-center justify-center py-20">
+            <span class="loading loading-spinner loading-lg"></span>
+          </div>
+        }
+      >
+        <Show
+          when={subscriptions().length > 0}
+          fallback={
+            <div class="text-center py-20">
+              <Globe class="w-16 h-16 mx-auto mb-4 text-base-content/30" />
+              <h3 class="text-lg font-medium mb-2">暂无订阅</h3>
+              <p class="text-base-content/60 mb-4">
+                添加订阅链接，自动获取代理节点
               </p>
-              <button class="btn btn-primary btn-sm rounded-xl mt-4 gap-1.5" onClick={openModal}>
-                <Plus size={14} />
-                导入订阅
+              <button
+                class="btn btn-primary"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus class="w-4 h-4 mr-1" />
+                添加订阅
               </button>
             </div>
+          }
+        >
+          <div class="grid gap-4">
+            <For each={subscriptions()}>
+              {(sub) => (
+                <div class="card bg-base-100 shadow-sm border border-base-200">
+                  <div class="card-body">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        {/* 标题行 */}
+                        <div class="flex items-center gap-3 mb-3">
+                          <h3 class="text-lg font-semibold">{sub.name}</h3>
+                          <Show when={sub.auto_update}>
+                            <span class="badge badge-primary badge-sm">自动更新</span>
+                          </Show>
+                          <span class="badge badge-ghost badge-sm">
+                            <Server class="w-3 h-3 mr-1" />
+                            {sub.node_count} 节点
+                          </span>
+                        </div>
+
+                        {/* URL */}
+                        <div class="text-sm text-base-content/60 mb-4 truncate max-w-2xl">
+                          {sub.url}
+                        </div>
+
+                        {/* 流量信息 */}
+                        <Show when={sub.total > 0}>
+                          <div class="bg-base-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                              <span class="text-sm font-medium">流量使用</span>
+                              <span class={`text-sm font-bold ${getUsageColor(sub.usage_percent)}`}>
+                                {sub.usage_percent.toFixed(1)}%
+                              </span>
+                            </div>
+
+                            {/* 进度条 */}
+                            <div class="w-full bg-base-300 rounded-full h-2 mb-3">
+                              <div
+                                class={`h-2 rounded-full transition-all ${getProgressColor(sub.usage_percent)}`}
+                                style={{ width: `${Math.min(sub.usage_percent, 100)}%` }}
+                              />
+                            </div>
+
+                            {/* 流量详情 */}
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <div class="text-base-content/60 flex items-center gap-1">
+                                  <Download class="w-3 h-3" />
+                                  下载
+                                </div>
+                                <div class="font-medium">{formatBytes(sub.download)}</div>
+                              </div>
+                              <div>
+                                <div class="text-base-content/60 flex items-center gap-1">
+                                  <Upload class="w-3 h-3" />
+                                  上传
+                                </div>
+                                <div class="font-medium">{formatBytes(sub.upload)}</div>
+                              </div>
+                              <div>
+                                <div class="text-base-content/60 flex items-center gap-1">
+                                  <Clock class="w-3 h-3" />
+                                  剩余
+                                </div>
+                                <div class="font-medium">{formatBytes(sub.remaining)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </Show>
+
+                        {/* 底部信息 */}
+                        <div class="flex items-center gap-4 text-sm text-base-content/60">
+                          <span>
+                            更新间隔: {Math.floor(sub.interval / 60)} 分钟
+                          </span>
+                          <span>
+                            上次更新: {sub.last_update
+                              ? new Date(sub.last_update).toLocaleString("zh-CN")
+                              : "从未"}
+                          </span>
+                          <Show when={sub.expire > 0}>
+                            <span class={sub.expire * 1000 < Date.now() ? "text-error" : ""}>
+                              到期: {formatExpire(sub.expire)}
+                            </span>
+                          </Show>
+                        </div>
+                      </div>
+
+                      {/* 操作按钮 */}
+                      <div class="flex flex-col gap-2 ml-4">
+                        <button
+                          class="btn btn-sm btn-outline"
+                          onClick={() => updateSubscription(sub.name)}
+                          disabled={updating() === sub.name}
+                        >
+                          <RefreshCw
+                            class={`w-4 h-4 ${updating() === sub.name ? "animate-spin" : ""}`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </For>
           </div>
         </Show>
-      </div>
+      </Show>
 
-      {/* Import Modal */}
-      <Show when={showModal()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={closeModal}>
-          <div
-            class="card bg-base-100 w-full max-w-lg mx-4 shadow-xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div class="flex items-center justify-between p-4 border-b border-base-300">
-              <div class="flex items-center gap-2">
-                {step() === "input" ? (
-                  <>
-                    <Globe size={18} class="text-primary" />
-                    <span class="font-medium">导入订阅</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowUpDown size={18} class="text-primary" />
-                    <span class="font-medium">配置已生成</span>
-                  </>
-                )}
-              </div>
-              <button class="btn btn-ghost btn-xs btn-square" onClick={closeModal}>
-                <span class="text-lg leading-none">&times;</span>
+      {/* 添加订阅弹窗 */}
+      <Show when={showAddModal()}>
+        <div class="modal modal-open">
+          <div class="modal-box max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold">添加订阅</h3>
+              <button
+                class="btn btn-ghost btn-sm btn-circle"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X class="w-4 h-4" />
               </button>
             </div>
 
-            {/* Step 1: Input URL */}
-            <Show when={step() === "input"}>
-              <div class="p-4 space-y-4">
-                <div class="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                  <Info size={16} class="text-primary mt-0.5 flex-shrink-0" />
-                  <p class="text-xs text-base-content/60 leading-relaxed">
-                    粘贴机场面板中的订阅链接（支持 Clash/V2Ray/SS 等格式），系统将自动生成 proxy-provider 配置。
-                  </p>
-                </div>
-
-                <div>
-                  <label class="text-sm text-base-content/70 mb-1.5 block font-medium">
-                    订阅链接
-                  </label>
-                  <input
-                    type="url"
-                    class="input input-bordered input-sm w-full rounded-xl font-mono text-sm"
-                    placeholder="https://example.com/api/v1/client/subscribe?token=xxx"
-                    value={formUrl()}
-                    onInput={(e) => {
-                      setFormUrl(e.currentTarget.value);
-                      setError("");
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label class="text-sm text-base-content/70 mb-1.5 block font-medium">
-                    订阅名称
-                    <span class="text-base-content/30 font-normal">（可选）</span>
-                  </label>
-                  <input
-                    type="text"
-                    class="input input-bordered input-sm w-full rounded-xl"
-                    placeholder="my-subscription"
-                    value={formName()}
-                    onInput={(e) => setFormName(e.currentTarget.value)}
-                  />
-                </div>
-
-                <Show when={error()}>
-                  <div class="flex items-center gap-2 text-error text-xs">
-                    <AlertCircle size={14} />
-                    {error()}
-                  </div>
-                </Show>
-
-                <button class="btn btn-primary w-full rounded-xl" onClick={generateConfig}>
-                  生成配置
-                </button>
+            <Show when={error()}>
+              <div class="alert alert-error mb-4">
+                <AlertCircle class="w-4 h-4" />
+                <span>{error()}</span>
               </div>
             </Show>
 
-            {/* Step 2: Generated Config */}
-            <Show when={step() === "config"}>
-              <div class="p-4 space-y-4">
-                <div class="flex items-start gap-2 p-3 rounded-lg bg-warning/5 border border-warning/10">
-                  <Info size={16} class="text-warning mt-0.5 flex-shrink-0" />
-                  <p class="text-xs text-base-content/60 leading-relaxed">
-                    将下方配置添加到 <code class="bg-base-200 px-1 rounded text-[11px]">config.yaml</code> 中，
-                    然后到"配置"页面点击"重载配置"即可生效。
-                  </p>
-                </div>
-
-                <div class="relative">
-                  <pre class="mockup-code text-xs leading-relaxed max-h-[300px] overflow-y-auto rounded-xl">
-                    <code class="text-base-content/80 whitespace-pre-wrap break-all">
-                      {configText()}
-                    </code>
-                  </pre>
-                  <button
-                    class="absolute top-2 right-2 btn btn-ghost btn-xs btn-square bg-base-100/80 backdrop-blur-sm"
-                    onClick={() => copyToClipboard(configText(), "config")}
-                    title="复制"
-                  >
-                    {copied() === "config" ? (
-                      <Check size={14} class="text-success" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </button>
-                </div>
-
-                <div class="flex gap-2">
-                  <button
-                    class="btn btn-primary flex-1 rounded-xl gap-1.5"
-                    onClick={() => copyToClipboard(configText(), "config")}
-                  >
-                    {copied() === "config" ? (
-                      <>
-                        <Check size={14} />
-                        已复制
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} />
-                        复制配置
-                      </>
-                    )}
-                  </button>
-                  <button class="btn btn-ghost rounded-xl gap-1.5" onClick={downloadConfig}>
-                    <Download size={14} />
-                    下载
-                  </button>
-                </div>
-
-                <button
-                  class="btn btn-ghost btn-sm w-full rounded-xl"
-                  onClick={() => setStep("input")}
-                >
-                  返回修改
-                </button>
+            <div class="space-y-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">订阅名称</span>
+                </label>
+                <input
+                  type="text"
+                  class="input input-bordered"
+                  placeholder="例如: 我的机场"
+                  value={formName()}
+                  onInput={(e) => setFormName(e.currentTarget.value)}
+                />
               </div>
-            </Show>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">订阅链接</span>
+                </label>
+                <input
+                  type="text"
+                  class="input input-bordered"
+                  placeholder="https://example.com/subscribe?token=xxx"
+                  value={formUrl()}
+                  onInput={(e) => setFormUrl(e.currentTarget.value)}
+                />
+              </div>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">更新间隔（分钟）</span>
+                </label>
+                <input
+                  type="number"
+                  class="input input-bordered"
+                  value={formInterval() / 60}
+                  onInput={(e) => setFormInterval(parseInt(e.currentTarget.value) * 60)}
+                  min="10"
+                />
+              </div>
+
+              <div class="form-control">
+                <label class="label cursor-pointer">
+                  <span class="label-text">自动更新</span>
+                  <input
+                    type="checkbox"
+                    class="toggle toggle-primary"
+                    checked={formAutoUpdate()}
+                    onChange={(e) => setFormAutoUpdate(e.currentTarget.checked)}
+                  />
+                </label>
+              </div>
+
+              <div class="alert alert-info text-sm">
+                <Info class="w-4 h-4" />
+                <span>
+                  订阅配置将复制到剪贴板，请手动添加到 config.yaml 文件中
+                </span>
+              </div>
+            </div>
+
+            <div class="modal-action">
+              <button class="btn btn-ghost" onClick={() => setShowAddModal(false)}>
+                取消
+              </button>
+              <button class="btn btn-primary" onClick={addSubscription}>
+                <Check class="w-4 h-4 mr-1" />
+                复制配置
+              </button>
+            </div>
           </div>
         </div>
       </Show>
