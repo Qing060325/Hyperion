@@ -160,7 +160,7 @@ export default function Sidebar() {
         {/* Version */}
         {!collapsed() && (
           <div class="text-[11px] text-base-content/40 text-center pt-1 animate-fade-left">
-            v0.3.0
+            v0.4.0
           </div>
         )}
       </div>
