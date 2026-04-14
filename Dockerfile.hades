@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Hades
-ARG HADES_VERSION=v0.4.0
+ARG HADES_VERSION=v0.5.0
 RUN wget -qO /usr/local/bin/hades "https://github.com/Qing060325/Hades/releases/download/${HADES_VERSION}/hades-linux-amd64" \
     && chmod +x /usr/local/bin/hades
 

@@ -1,3 +1,115 @@
+# Hyperion v0.5.0 更新日志
+
+## 🎨 全新动画交互系统
+
+> 本次更新全面重构了界面交互体验，为每个可点击元素增加了即时视觉反馈，告别"点击无反应"的时代。
+
+### 🌸 樱花粒子皮肤
+
+- **Canvas 实时渲染** — 75 片樱花花瓣在屏幕上缓缓飘落
+  - 5 种粉色渐变花瓣，3D 翻转摇摆效果
+  - 正弦波漂移 + 自然飘落物理模拟
+  - 深色模式自动降低 40% 透明度
+  - Canvas 层级 `z-index: 0`，不干扰交互
+- **一键开关** — 设置页「外观」区域新增「樱花特效」开关
+- **实时响应** — 开关后立即生效，无需刷新页面
+
+### 💫 Material Design 水波纹（Ripple）
+
+- 全局 `use:ripple` 指令，为所有可交互元素增加点击水波纹反馈
+- 覆盖范围：
+  - 侧边栏导航项、主题切换、折叠按钮
+  - 底部移动端导航
+  - 仪表盘模式切换
+  - 代理页代理卡片、全部测速
+  - 连接页关闭全部
+  - 日志页级别筛选、自动滚动、暂停、清空
+  - 配置页操作按钮、更新按钮
+  - DNS 页查询、刷新
+  - 订阅页所有按钮
+  - 设置页保存、主题选择、模式切换、升级
+  - 规则编辑器返回
+  - 配置文件新增、导入
+  - 连接详情关闭、断开
+  - 欢迎向导跳过
+  - 系统代理开关配置
+  - 拖拽代理卡片、延迟测试
+
+### 🎬 18 种全新关键帧动画
+
+| 动画 | 用途 |
+|------|------|
+| `pageInEnhanced` | 页面进入（替代旧版 `pageIn`） |
+| `cardSpringIn` | 卡片弹入（替代旧版 `cardIn`，更弹性） |
+| `ripple` | 点击水波纹扩散 |
+| `glowPulse` | 主色调光晕脉冲 |
+| `successFlash` | 成功反馈闪绿 |
+| `errorShake` | 错误抖动反馈 |
+| `listItemIn` / `listItemOut` | 列表项进出 |
+| `modalBackdropIn` / `modalContentIn` | 弹窗进入 |
+| `toggleGlow` | 开关激活发光 |
+| `indicatorSlide` | 行悬浮滑入高亮 |
+| `counterRoll` | 数字滚动 |
+| `toastIn` / `toastOut` | 通知进出 |
+| `spinnerGlow` | 加载旋转发光 |
+| `highlightSlide` | 行悬浮高亮 |
+| `scalePop` | 缩放弹出 |
+
+### 🔢 数字动画计数器
+
+- `AnimatedCounter` 组件 — 数值变化时触发滚动动画
+- 仪表盘上传/下载速率、连接数、内存使用均已启用
+
+### 🔄 页面过渡动画
+
+- `PageTransition` 组件 — 路由切换时自动重播进入动画
+- 基于 `useLocation()` 监听路径变化
+
+### 🍞 Toast 通知系统
+
+- `ToastContainer` + `showToast()` 全局通知
+- 4 种类型：success / error / info / warning
+- 自动消失 + 进出动画
+
+### ✨ 界面细节增强
+
+- **卡片悬浮**：`translateY(-3px) scale(1.01)`，主色调边框
+- **按钮反馈**：悬浮上移 1px，点击缩小 0.96 + 发光阴影
+- **导航栏**：激活项左侧渐变指示条，悬浮右移 3px
+- **开关**：弹簧缓动 + 选中时发光脉冲
+- **毛玻璃**：blur 20→24px，saturate 200%，亮度提升
+- **骨架屏**：渐变速度 1.8s，新增 glow 变体
+- **渐变文字**：`.text-gradient-primary` 主色渐变
+- **渐变边框**：`.gradient-border` 容器
+- **噪点背景**：`.noise-bg` 微妙纹理
+
+### 🛠 技术改进
+
+- CSS 自定义属性新增 6 个缓动曲线、3 个发光色、3 个渐变
+- 12 个新动画工具类（`animate-page-in-enhanced` 等）
+- 移动端导航动画类（`.mobile-nav-item` / `.mobile-nav-item-active`）
+- SolidJS 指令类型注册（`declare module "solid-js"` 扩展 JSX Directives）
+
+### 📁 新增文件
+
+| 文件 | 功能 |
+|------|------|
+| `src/components/ui/RippleEffect.tsx` | 水波纹指令 |
+| `src/components/ui/AnimatedCounter.tsx` | 数字动画组件 |
+| `src/components/ui/Toast.tsx` | Toast 通知系统 |
+| `src/components/ui/PageTransition.tsx` | 页面过渡组件 |
+| `src/components/sakura/SakuraCanvas.tsx` | 樱花粒子渲染 |
+
+### 📊 变更统计
+
+- **29 个文件** 被修改
+- **831 行** 新增 / **106 行** 删除
+- **5 个** 新组件文件
+- **346 行** 新增 CSS 动画代码
+- **0 个** npm 新依赖（纯 CSS + SolidJS 实现）
+
+---
+
 # Hyperion v0.4.0 更新日志
 
 ## 🎉 新功能

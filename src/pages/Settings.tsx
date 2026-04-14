@@ -240,7 +240,7 @@ export default function Settings() {
         </div>
         <div class="divide-y divide-base-200/50">
           <SettingRow label="Hyperion 版本">
-            <span class="badge badge-sm badge-ghost font-mono">v0.4.0</span>
+            <span class="badge badge-sm badge-ghost font-mono">v0.5.0</span>
           </SettingRow>
           <SettingRow label="Hades 版本">
             <span class="badge badge-sm badge-ghost font-mono">{clash.version()?.version || "-"}</span>
