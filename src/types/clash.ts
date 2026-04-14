@@ -2,10 +2,12 @@
 // Clash API Type Definitions
 // ==========================================
 
-/** Clash core version info */
+/** Clash/Hades core version info */
 export interface ClashVersion {
-  meta: boolean;
+  meta?: boolean;
   version: string;
+  goVersion?: string;
+  buildTime?: string;
 }
 
 /** Clash basic config */
