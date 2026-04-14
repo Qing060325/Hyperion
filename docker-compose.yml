@@ -1,13 +1,15 @@
 services:
-  clash:
+  hades:
     build:
-      context: .
-      dockerfile: Dockerfile.hades
-    container_name: hyperion-clash
+      context: ./Hades
+      dockerfile: Dockerfile
+    container_name: hades
+    hostname: hades
     volumes:
       - ./config:/root/.config/hades
     ports:
       - "${PROXY_PORT:-7890}:7890"
+      - "${API_PORT:-9090}:9090"
     cap_add:
       - NET_ADMIN
     healthcheck:
@@ -18,15 +20,20 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - hyperion-net
+      hyperion-net:
+        aliases:
+          - hades
 
   hyperion:
     build: .
     container_name: hyperion
     ports:
       - "${PORT:-8080}:8080"
+    environment:
+      - HADES_API_URL=http://hades:9090
+      - HADES_SECRET=${SECRET:-}
     depends_on:
-      clash:
+      hades:
         condition: service_healthy
     restart: unless-stopped
     networks:

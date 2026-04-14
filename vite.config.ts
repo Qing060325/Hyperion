@@ -13,14 +13,25 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:9090",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/ws": {
+        target: "ws://127.0.0.1:9090",
+        ws: true,
+        rewrite: (path) => path.replace(/^\/ws/, ""),
+      },
+    },
   },
   build: {
     target: "esnext",
     minify: "esbuild",
     rollupOptions: {
       onwarn(warning, warn) {
-        // suppress warnings about unresolved imports that vite handles
-        if (warning.code === 'UNRESOLVED_IMPORT') return;
+        if (warning.code === "UNRESOLVED_IMPORT") return;
         warn(warning);
       },
     },

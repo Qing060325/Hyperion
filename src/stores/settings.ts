@@ -1,34 +1,51 @@
-import { createSignal } from "solid-js";
+import { createStore } from "solid-js/store";
 import type { HyperionSettings } from "../types/clash";
 import { DEFAULT_SETTINGS } from "../types/clash";
 
+const STORAGE_KEY = "hyperion-settings";
+
 export function createSettingsStore() {
-  const [settings, setSettings] = createSignal<HyperionSettings>({
-    ...DEFAULT_SETTINGS,
-  });
+  // 从 localStorage 加载
+  const loadSaved = (): HyperionSettings => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      }
+    } catch {
+      // 忽略解析错误
+    }
+    return { ...DEFAULT_SETTINGS };
+  };
+
+  const [store, setStore] = createStore<HyperionSettings>(loadSaved());
+
+  // 自动持久化
+  const persist = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    } catch {
+      // 忽略存储错误
+    }
+  };
+
+  const settings = () => store;
+  const setSettings = (v: HyperionSettings) => {
+    setStore(v);
+    persist();
+  };
 
   const updateSettings = (partial: Partial<HyperionSettings>) => {
-    setSettings((prev) => ({ ...prev, ...partial }));
+    setStore(partial);
+    persist();
   };
 
   const loadSettings = () => {
-    try {
-      const saved = localStorage.getItem("hyperion-settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-      }
-    } catch {
-      // Ignore parse errors
-    }
+    setStore(loadSaved());
   };
 
   const saveSettings = () => {
-    try {
-      localStorage.setItem("hyperion-settings", JSON.stringify(settings()));
-    } catch {
-      // Ignore storage errors
-    }
+    persist();
   };
 
   return {
@@ -37,6 +54,7 @@ export function createSettingsStore() {
     updateSettings,
     loadSettings,
     saveSettings,
+    store,
   };
 }
 
