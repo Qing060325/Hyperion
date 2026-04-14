@@ -72,7 +72,8 @@ export function createClashStore() {
       }
       setConnected(false);
       return false;
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e);
       setConnected(false);
       return false;
     }
