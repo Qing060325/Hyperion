@@ -59,7 +59,7 @@ check_docker() {
 
 # 检查 Hyperion 是否已安装
 is_installed() {
-    [ -d "$INSTALL_PATH/$REPO_NAME" ] && [ -f "$INSTALL_PATH/$REPO_NAME/Hyperion/docker-compose.yml" ]
+    [ -d "$INSTALL_PATH/$REPO_NAME" ] && [ -f "$INSTALL_PATH/$REPO_NAME/docker-compose.yml" ]
 }
 
 # -------------------------------------------------------------------
@@ -80,8 +80,8 @@ install_hyperion() {
     sudo git clone "$REPO_URL" "$INSTALL_PATH/$REPO_NAME"
     print_success "仓库克隆完成。"
 
-    # 进入实际包含 docker-compose.yml 的子目录
-    cd "$INSTALL_PATH/$REPO_NAME/Hyperion"
+    # 进入项目目录
+    cd "$INSTALL_PATH/$REPO_NAME"
 
     print_info "初始化配置文件..."
     if [ ! -f "config/config.yaml" ]; then
@@ -109,7 +109,7 @@ start_hyperion() {
         print_error "Hyperion 未安装。请先运行安装命令。"
     fi
     print_info "启动 Hyperion 服务..."
-    cd "$INSTALL_PATH/$REPO_NAME/Hyperion"
+    cd "$INSTALL_PATH/$REPO_NAME"
     sudo docker compose up -d
     print_success "Hyperion 服务已启动！"
     display_access_info
@@ -121,7 +121,7 @@ stop_hyperion() {
         print_error "Hyperion 未安装。"
     fi
     print_info "停止 Hyperion 服务..."
-    cd "$INSTALL_PATH/$REPO_NAME/Hyperion"
+    cd "$INSTALL_PATH/$REPO_NAME"
     sudo docker compose down
     print_success "Hyperion 服务已停止。"
 }
@@ -132,7 +132,7 @@ restart_hyperion() {
         print_error "Hyperion 未安装。"
     fi
     print_info "重启 Hyperion 服务..."
-    cd "$INSTALL_PATH/$REPO_NAME/Hyperion"
+    cd "$INSTALL_PATH/$REPO_NAME"
     sudo docker compose restart
     print_success "Hyperion 服务已重启！"
     display_access_info
@@ -146,7 +146,6 @@ update_hyperion() {
     print_info "更新 Hyperion 仓库和重建 Docker 镜像..."
     cd "$INSTALL_PATH/$REPO_NAME"
     sudo git pull origin main
-    cd "Hyperion"
     sudo docker compose pull
     sudo docker compose up -d --build
     print_success "Hyperion 已更新并重启！"
@@ -162,7 +161,7 @@ uninstall_hyperion() {
     read -p "确定要卸载 Hyperion 吗？ (y/N): " confirm
     if [[ "$confirm" =~ ^[yY]$ ]]; then
         print_info "停止并移除 Docker 容器和镜像..."
-        cd "$INSTALL_PATH/$REPO_NAME/Hyperion"
+        cd "$INSTALL_PATH/$REPO_NAME"
         sudo docker compose down -v --rmi all
         print_info "删除安装目录..."
         sudo rm -rf "$INSTALL_PATH"
@@ -178,17 +177,17 @@ display_access_info() {
     local port="8080"
     local proxy_port="7890"
 
-    if [ -f "$INSTALL_PATH/$REPO_NAME/Hyperion/.env" ]; then
-        port=$(grep -E "^PORT=" "$INSTALL_PATH/$REPO_NAME/Hyperion/.env" | cut -d '=' -f 2 || echo "8080")
-        proxy_port=$(grep -E "^PROXY_PORT=" "$INSTALL_PATH/$REPO_NAME/Hyperion/.env" | cut -d '=' -f 2 || echo "7890")
+    if [ -f "$INSTALL_PATH/$REPO_NAME/.env" ]; then
+        port=$(grep -E "^PORT=" "$INSTALL_PATH/$REPO_NAME/.env" | cut -d '=' -f 2 || echo "8080")
+        proxy_port=$(grep -E "^PROXY_PORT=" "$INSTALL_PATH/$REPO_NAME/.env" | cut -d '=' -f 2 || echo "7890")
     fi
 
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Hyperion 服务信息${NC}"
     echo -e "\n  前端面板: ${BLUE}http://localhost:${port}${NC}"
     echo -e "  代理端口: ${BLUE}127.0.0.1:${proxy_port}${NC}"
-    echo -e "\n  配置文件位置: ${BLUE}$INSTALL_PATH/$REPO_NAME/Hyperion/config/config.yaml${NC}"
-    echo -e "  环境变量文件: ${BLUE}$INSTALL_PATH/$REPO_NAME/Hyperion/.env${NC}"
+    echo -e "\n  配置文件位置: ${BLUE}$INSTALL_PATH/$REPO_NAME/config/config.yaml${NC}"
+    echo -e "  环境变量文件: ${BLUE}$INSTALL_PATH/$REPO_NAME/.env${NC}"
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
