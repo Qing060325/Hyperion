@@ -1,16 +1,4 @@
 services:
-  hyperion:
-    build: .
-    container_name: hyperion
-    ports:
-      - "${PORT:-8080}:8080"
-    depends_on:
-      clash:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - hyperion-net
-
   clash:
     build:
       context: .
@@ -25,9 +13,21 @@ services:
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9090/version"]
       interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - hyperion-net
+
+  hyperion:
+    build: .
+    container_name: hyperion
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      clash:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - hyperion-net
