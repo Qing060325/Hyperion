@@ -2,7 +2,7 @@ import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, XCircle, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
-import { formatBytes, formatSpeed } from "@/utils/format";
+import { formatBytes } from "@/utils/format";
 
 interface Connection {
   id: string;
@@ -22,6 +22,9 @@ interface Connection {
   rulePayload: string;
 }
 
+const ROW_HEIGHT = 40; // 每行高度 (px)
+const OVERSCAN = 10;   // 上下额外渲染的行数
+
 export default function Connections() {
   const clash = useClashStore();
   const wsManager = useClashWs();
@@ -29,6 +32,9 @@ export default function Connections() {
   const [filter, setFilter] = createSignal("");
   const [sortKey, setSortKey] = createSignal<string>("");
   const [sortDir, setSortDir] = createSignal<1 | -1>(-1);
+  const [scrollTop, setScrollTop] = createSignal(0);
+  const [viewportHeight, setViewportHeight] = createSignal(600);
+  let scrollContainer: HTMLDivElement | undefined;
 
   createEffect(() => {
     if (!clash.connected()) return;
@@ -105,6 +111,41 @@ export default function Connections() {
     else { setSortKey(key); setSortDir(-1); }
   };
 
+  // 虚拟滚动计算
+  const virtualData = () => {
+    const items = filtered();
+    const totalHeight = items.length * ROW_HEIGHT;
+    const st = scrollTop();
+    const vh = viewportHeight();
+
+    const startIndex = Math.max(0, Math.floor(st / ROW_HEIGHT) - OVERSCAN);
+    const endIndex = Math.min(
+      items.length,
+      Math.ceil((st + vh) / ROW_HEIGHT) + OVERSCAN
+    );
+
+    const visibleItems = items.slice(startIndex, endIndex);
+
+    return {
+      totalHeight,
+      startIndex,
+      endIndex,
+      visibleItems,
+      offsetY: startIndex * ROW_HEIGHT,
+    };
+  };
+
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLDivElement;
+    setScrollTop(target.scrollTop);
+  };
+
+  const updateViewport = () => {
+    if (scrollContainer) {
+      setViewportHeight(scrollContainer.clientHeight);
+    }
+  };
+
   return (
     <div class="animate-page-in space-y-6">
       {/* Header */}
@@ -133,7 +174,7 @@ export default function Connections() {
         />
       </div>
 
-      {/* Table */}
+      {/* Virtual Table */}
       <div class="card bg-base-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="table table-sm">
@@ -157,32 +198,48 @@ export default function Connections() {
                 <th class="w-10"></th>
               </tr>
             </thead>
-            <tbody>
-              <For each={filtered()}>
-                {(conn, i) => (
-                  <tr class="list-row hover:bg-base-200/50 border-b border-base-200/50">
-                    <td class="font-mono text-xs max-w-[180px] truncate">{conn.metadata.host || conn.metadata.remoteDestination}</td>
-                    <td>
+          </table>
+        </div>
+
+        {/* Virtual scroll container */}
+        <div
+          ref={scrollContainer}
+          class="overflow-y-auto"
+          style={{ height: `calc(100vh - 360px)`, "min-height": "300px" }}
+          onScroll={handleScroll}
+          onResize={updateViewport}
+        >
+          <div style={{ height: `${virtualData().totalHeight}px`, position: "relative" }}>
+            <div style={{ transform: `translateY(${virtualData().offsetY}px)` }}>
+              <For each={virtualData().visibleItems}>
+                {(conn) => (
+                  <div
+                    class="flex items-center gap-2 px-4 py-1.5 hover:bg-base-200/50 border-b border-base-200/50"
+                    style={{ height: `${ROW_HEIGHT}px`, "box-sizing": "border-box" }}
+                  >
+                    <div class="font-mono text-xs max-w-[180px] truncate flex-1">{conn.metadata.host || conn.metadata.remoteDestination}</div>
+                    <div class="w-14">
                       <span class={`badge badge-xs ${conn.metadata.network === "udp" ? "badge-warning" : "badge-info"}`}>
                         {conn.metadata.network?.toUpperCase()}
                       </span>
-                    </td>
-                    <td class="text-xs text-base-content/70 max-w-[100px] truncate">{conn.metadata.process || "-"}</td>
-                    <td class="text-xs max-w-[120px] truncate">{conn.rule}</td>
-                    <td class="text-xs text-primary font-mono">{formatBytes(conn.download)}</td>
-                    <td class="text-xs text-success font-mono">{formatBytes(conn.upload)}</td>
-                    <td class="text-[11px] text-base-content/40 max-w-[200px] truncate">{(conn.chains || []).join(" → ")}</td>
-                    <td>
+                    </div>
+                    <div class="text-xs text-base-content/70 max-w-[100px] truncate w-24">{conn.metadata.process || "-"}</div>
+                    <div class="text-xs max-w-[120px] truncate w-28">{conn.rule}</div>
+                    <div class="text-xs text-primary font-mono w-20 text-right">{formatBytes(conn.download)}</div>
+                    <div class="text-xs text-success font-mono w-20 text-right">{formatBytes(conn.upload)}</div>
+                    <div class="text-[11px] text-base-content/40 max-w-[200px] truncate flex-1">{(conn.chains || []).join(" → ")}</div>
+                    <div class="w-8">
                       <button class="btn btn-ghost btn-xs btn-square text-base-content/30 hover:text-error" onClick={() => closeOne(conn.id)}>
                         <XCircle size={14} />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )}
               </For>
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
+
         <Show when={filtered().length === 0}>
           <div class="text-center py-12 text-base-content/30">
             <p class="text-sm">暂无活跃连接</p>

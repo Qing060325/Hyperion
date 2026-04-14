@@ -1,4 +1,4 @@
-import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
+import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, Pause, Play, Trash2, ArrowDown } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
@@ -15,6 +15,10 @@ const levelColors: Record<string, string> = {
   error: "badge-error",
 };
 
+const ROW_HEIGHT = 26;   // 每行高度 (px)
+const OVERSCAN = 20;     // 上下额外渲染行数（日志通常滚动很快）
+const MAX_LOGS = 5000;   // 最大日志条数（比原来 500 大 10 倍，虚拟列表不卡）
+
 export default function Logs() {
   const clash = useClashStore();
   const wsManager = useClashWs();
@@ -23,8 +27,9 @@ export default function Logs() {
   const [search, setSearch] = createSignal("");
   const [paused, setPaused] = createSignal(false);
   const [autoScroll, setAutoScroll] = createSignal(true);
-  const [maxLogs] = createSignal(500);
-  let logContainer: HTMLDivElement | undefined;
+  const [scrollTop, setScrollTop] = createSignal(0);
+  const [viewportHeight, setViewportHeight] = createSignal(400);
+  let scrollContainer: HTMLDivElement | undefined;
 
   createEffect(() => {
     if (!clash.connected()) return;
@@ -38,11 +43,14 @@ export default function Logs() {
       const entry = data as LogEntry;
       setLogs((prev) => {
         const next = [...prev, entry];
-        return next.length > maxLogs() ? next.slice(-maxLogs()) : next;
+        return next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
       });
-      if (autoScroll() && logContainer) {
+      // 自动滚动到底部
+      if (autoScroll() && scrollContainer) {
         requestAnimationFrame(() => {
-          if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+          if (scrollContainer) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }
         });
       }
     });
@@ -54,11 +62,40 @@ export default function Logs() {
     return logs().filter((l) => l.payload.toLowerCase().includes(q));
   };
 
+  // 虚拟滚动计算
+  const virtualData = () => {
+    const items = filtered();
+    const totalHeight = items.length * ROW_HEIGHT;
+    const st = scrollTop();
+    const vh = viewportHeight();
+
+    const startIndex = Math.max(0, Math.floor(st / ROW_HEIGHT) - OVERSCAN);
+    const endIndex = Math.min(
+      items.length,
+      Math.ceil((st + vh) / ROW_HEIGHT) + OVERSCAN
+    );
+
+    const visibleItems = items.slice(startIndex, endIndex);
+
+    return {
+      totalHeight,
+      startIndex,
+      endIndex,
+      visibleItems,
+      offsetY: startIndex * ROW_HEIGHT,
+    };
+  };
+
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLDivElement;
+    setScrollTop(target.scrollTop);
+  };
+
   return (
     <div class="animate-page-in space-y-6">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">日志</h1>
-        <p class="text-sm text-base-content/50 mt-0.5">Clash Meta 实时日志流</p>
+        <p class="text-sm text-base-content/50 mt-0.5">Hades 实时日志流 · {logs().length} 条</p>
       </div>
 
       {/* Controls */}
@@ -111,29 +148,45 @@ export default function Logs() {
         </div>
       </div>
 
-      {/* Log Output */}
+      {/* Virtual Log Output */}
       <div
-        ref={logContainer}
+        ref={scrollContainer}
         class="card bg-base-100 overflow-hidden"
         style={{ height: "calc(100vh - 240px)", "min-height": "300px" }}
+        onScroll={handleScroll}
       >
-        <div class="h-full overflow-y-auto p-2 font-mono text-xs leading-relaxed">
-          <For each={filtered()}>
-            {(log) => (
-              <div class="flex items-start gap-2 px-2 py-0.5 rounded hover:bg-base-200/30">
-                <span class={`badge badge-xs ${levelColors[log.type] || "badge-ghost"} mt-0.5 flex-shrink-0`}>
-                  {log.type.slice(0, 4)}
-                </span>
-                <span class="text-base-content/70 whitespace-pre-wrap break-all">{log.payload}</span>
-              </div>
-            )}
-          </For>
-          <Show when={filtered().length === 0}>
-            <div class="text-center py-8 text-base-content/30">
-              <p>等待日志输出...</p>
-            </div>
-          </Show>
+        <div
+          class="font-mono text-xs leading-relaxed"
+          style={{
+            height: `${virtualData().totalHeight}px`,
+            position: "relative",
+            padding: "8px",
+          }}
+        >
+          <div style={{ transform: `translateY(${virtualData().offsetY}px)` }}>
+            <For each={virtualData().visibleItems}>
+              {(log) => (
+                <div
+                  class="flex items-start gap-2 px-2 rounded hover:bg-base-200/30"
+                  style={{ height: `${ROW_HEIGHT}px`, "box-sizing": "border-box" }}
+                >
+                  <span class={`badge badge-xs ${levelColors[log.type] || "badge-ghost"} mt-0.5 flex-shrink-0`}>
+                    {log.type.slice(0, 4)}
+                  </span>
+                  <span class="text-base-content/70 whitespace-pre-wrap break-all overflow-hidden">
+                    {log.payload}
+                  </span>
+                </div>
+              )}
+            </For>
+          </div>
         </div>
+
+        <Show when={filtered().length === 0}>
+          <div class="text-center py-8 text-base-content/30 absolute inset-0 flex items-center justify-center">
+            <p>等待日志输出...</p>
+          </div>
+        </Show>
       </div>
     </div>
   );

@@ -1,8 +1,34 @@
 import { createSignal, createEffect, onMount, onCleanup, For } from "solid-js";
-import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe } from "lucide-solid";
+import { createStore } from "solid-js/store";
+import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe, GripVertical } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
+
+const LAYOUT_KEY = "hyperion-dashboard-layout";
+
+// 默认卡片顺序
+const DEFAULT_CARDS = ["upload", "download", "connections", "memory", "chart"] as const;
+type CardId = typeof DEFAULT_CARDS[number];
+
+function loadLayout(): CardId[] {
+  try {
+    const saved = localStorage.getItem(LAYOUT_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length === DEFAULT_CARDS.length) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return [...DEFAULT_CARDS];
+}
+
+function saveLayout(cards: CardId[]) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(cards));
+  } catch {}
+}
 
 export default function Dashboard() {
   const clash = useClashStore();
@@ -11,10 +37,16 @@ export default function Dashboard() {
   const [downSpeed, setDownSpeed] = createSignal(0);
   const [totalUp, setTotalUp] = createSignal(0);
   const [totalDown, setTotalDown] = createSignal(0);
-  const [connections, setConnections] = createSignal(0);
+  const [connCount, setConnCount] = createSignal(0);
   const [memory, setMemory] = createSignal(0);
   const [mode, setMode] = createSignal("rule");
   const [trafficHistory, setTrafficHistory] = createSignal<{ up: number; down: number }[]>([]);
+
+  // 拖拽状态
+  const [cards, setCards] = createStore<{ order: CardId[] }>({ order: loadLayout() });
+  const [dragIndex, setDragIndex] = createSignal<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = createSignal<number | null>(null);
+
   let canvasRef: HTMLCanvasElement | undefined;
   let animFrame: number;
 
@@ -29,7 +61,6 @@ export default function Dashboard() {
     });
   });
 
-  // Fetch memory
   const fetchMemory = async () => {
     try {
       const res = await fetch(`${clash.baseUrl()}/memory`, { headers: clash.headers() });
@@ -40,7 +71,6 @@ export default function Dashboard() {
     } catch (e) { console.error(e) }
   };
 
-  // WebSocket traffic stream
   const connectTrafficWs = () => {
     wsManager.connectTraffic((data) => {
       setUpSpeed(data.up || 0);
@@ -79,7 +109,6 @@ export default function Dashboard() {
       const maxVal = Math.max(1, ...history.map((h) => Math.max(h.up, h.down)));
       const points = 120;
 
-      // Grid lines
       ctx.strokeStyle = getComputedStyle(document.documentElement)
         .getPropertyValue("--color-base-300")
         .trim() || "#e8e8ed";
@@ -100,8 +129,7 @@ export default function Dashboard() {
           const val = history[idx]?.[key] || 0;
           const x = (cw / (points - 1)) * i;
           const y = ch - (val / maxVal) * ch * 0.85;
-          if (i === 0) ctx.lineTo(x, y);
-          else ctx.lineTo(x, y);
+          ctx.lineTo(x, y);
         }
         ctx.lineTo(cw, ch);
         ctx.closePath();
@@ -111,7 +139,6 @@ export default function Dashboard() {
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Line
         ctx.beginPath();
         for (let i = 0; i < points; i++) {
           const idx = Math.max(0, history.length - points + i);
@@ -149,13 +176,107 @@ export default function Dashboard() {
     } catch (e) { console.error(e) }
   };
 
+  // 拖拽处理
+  const handleDragStart = (e: DragEvent, index: number) => {
+    setDragIndex(index);
+    e.dataTransfer!.effectAllowed = "move";
+    e.dataTransfer!.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (e: DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: DragEvent, index: number) => {
+    e.preventDefault();
+    const from = dragIndex();
+    if (from !== null && from !== index) {
+      const newOrder = [...cards.order];
+      const [moved] = newOrder.splice(from, 1);
+      newOrder.splice(index, 0, moved);
+      setCards("order", newOrder);
+      saveLayout(newOrder);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // 卡片渲染映射
+  const cardRenderers: Record<CardId, () => JSX.Element> = {
+    upload: () => (
+      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+        <div class="flex items-center gap-2 text-base-content/50 mb-2">
+          <ArrowUp size={16} class="text-success" />
+          <span class="text-xs font-medium">上传速率</span>
+        </div>
+        <div class="text-2xl font-bold tracking-tight">{formatSpeed(upSpeed())}</div>
+        <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalUp())}</div>
+      </div>
+    ),
+    download: () => (
+      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+        <div class="flex items-center gap-2 text-base-content/50 mb-2">
+          <ArrowDown size={16} class="text-primary" />
+          <span class="text-xs font-medium">下载速率</span>
+        </div>
+        <div class="text-2xl font-bold tracking-tight">{formatSpeed(downSpeed())}</div>
+        <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalDown())}</div>
+      </div>
+    ),
+    connections: () => (
+      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+        <div class="flex items-center gap-2 text-base-content/50 mb-2">
+          <Activity size={16} class="text-orange-500" />
+          <span class="text-xs font-medium">活跃连接</span>
+        </div>
+        <div class="text-2xl font-bold tracking-tight">{connCount()}</div>
+        <div class="text-xs text-base-content/40 mt-1">实时连接数</div>
+      </div>
+    ),
+    memory: () => (
+      <div class="stat-card card bg-base-100 p-4 animate-card-in">
+        <div class="flex items-center gap-2 text-base-content/50 mb-2">
+          <Cpu size={16} class="text-purple-500" />
+          <span class="text-xs font-medium">内存使用</span>
+        </div>
+        <div class="text-2xl font-bold tracking-tight">{formatBytes(memory())}</div>
+        <div class="text-xs text-base-content/40 mt-1">Hades</div>
+      </div>
+    ),
+    chart: () => (
+      <div class="card bg-base-100 animate-card-in col-span-2 lg:col-span-4">
+        <div class="flex items-center justify-between p-4 border-b border-base-300">
+          <span class="font-medium text-sm">流量趋势</span>
+          <div class="flex items-center gap-3 text-xs text-base-content/50">
+            <span class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-primary" /> 下载
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-success" /> 上传
+            </span>
+          </div>
+        </div>
+        <div class="p-4" style={{ height: "200px" }}>
+          <canvas ref={canvasRef} class="w-full h-full" />
+        </div>
+      </div>
+    ),
+  };
+
   return (
     <div class="animate-page-in space-y-6">
       {/* Header */}
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">仪表盘</h1>
-          <p class="text-sm text-base-content/50 mt-0.5">实时监控代理流量与系统状态</p>
+          <p class="text-sm text-base-content/50 mt-0.5">实时监控代理流量与系统状态 · 拖拽卡片可调整布局</p>
         </div>
         <div class="flex items-center gap-2">
           <span
@@ -186,58 +307,28 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Stat Cards */}
+      {/* Draggable Cards Grid */}
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-1">
-          <div class="flex items-center gap-2 text-base-content/50 mb-2">
-            <ArrowUp size={16} class="text-success" />
-            <span class="text-xs font-medium">上传速率</span>
-          </div>
-          <div class="text-2xl font-bold tracking-tight">{formatSpeed(upSpeed())}</div>
-          <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalUp())}</div>
-        </div>
-        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-2">
-          <div class="flex items-center gap-2 text-base-content/50 mb-2">
-            <ArrowDown size={16} class="text-primary" />
-            <span class="text-xs font-medium">下载速率</span>
-          </div>
-          <div class="text-2xl font-bold tracking-tight">{formatSpeed(downSpeed())}</div>
-          <div class="text-xs text-base-content/40 mt-1">总计 {formatBytes(totalDown())}</div>
-        </div>
-        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-3">
-          <div class="flex items-center gap-2 text-base-content/50 mb-2">
-            <Activity size={16} class="text-orange-500" />
-            <span class="text-xs font-medium">活跃连接</span>
-          </div>
-          <div class="text-2xl font-bold tracking-tight">{connections()}</div>
-          <div class="text-xs text-base-content/40 mt-1">实时连接数</div>
-        </div>
-        <div class="stat-card card bg-base-100 p-4 animate-card-in stagger-4">
-          <div class="flex items-center gap-2 text-base-content/50 mb-2">
-            <Cpu size={16} class="text-purple-500" />
-            <span class="text-xs font-medium">内存使用</span>
-          </div>
-          <div class="text-2xl font-bold tracking-tight">{formatBytes(memory())}</div>
-          <div class="text-xs text-base-content/40 mt-1">Clash Meta</div>
-        </div>
-      </div>
-
-      {/* Traffic Chart */}
-      <div class="card bg-base-100 animate-card-in stagger-5">
-        <div class="flex items-center justify-between p-4 border-b border-base-300">
-          <span class="font-medium text-sm">流量趋势</span>
-          <div class="flex items-center gap-3 text-xs text-base-content/50">
-            <span class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-primary" /> 下载
-            </span>
-            <span class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-success" /> 上传
-            </span>
-          </div>
-        </div>
-        <div class="p-4" style={{ height: "200px" }}>
-          <canvas ref={canvasRef} class="w-full h-full" />
-        </div>
+        <For each={cards.order}>
+          {(cardId, index) => (
+            <div
+              class={`relative group transition-all duration-200 ${
+                dragOverIndex() === index() && dragIndex() !== index() ? "ring-2 ring-primary ring-offset-2 ring-offset-base-100 rounded-xl" : ""
+              } ${dragIndex() === index() ? "opacity-50 scale-95" : ""}`}
+              draggable={true}
+              onDragStart={(e) => handleDragStart(e, index())}
+              onDragOver={(e) => handleDragOver(e, index())}
+              onDrop={(e) => handleDrop(e, index())}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Drag Handle (visible on hover) */}
+              <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing">
+                <GripVertical size={14} class="text-base-content/30" />
+              </div>
+              {cardRenderers[cardId]()}
+            </div>
+          )}
+        </For>
       </div>
     </div>
   );
