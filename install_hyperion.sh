@@ -158,7 +158,12 @@ uninstall_hyperion() {
         print_error "Hyperion 未安装。"
     fi
     print_warning "这将停止并移除所有 Hyperion 相关的 Docker 容器、镜像和数据。"
-    read -p "确定要卸载 Hyperion 吗？ (y/N): " confirm
+    echo -n "确定要卸载 Hyperion 吗？ (y/N): "
+    if [ -t 0 ]; then
+        read -r confirm
+    else
+        read -r confirm </dev/tty
+    fi
     if [[ "$confirm" =~ ^[yY]$ ]]; then
         print_info "停止并移除 Docker 容器和镜像..."
         cd "$INSTALL_PATH/$REPO_NAME"
@@ -214,7 +219,11 @@ show_menu() {
 main() {
     while true; do
         show_menu
-        read -r choice
+        if [ -t 0 ]; then
+            read -r choice
+        else
+            read -r choice </dev/tty
+        fi
         case "$choice" in
             1) install_hyperion ;;
             2) start_hyperion ;;
