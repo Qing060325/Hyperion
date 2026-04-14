@@ -1,262 +1,305 @@
 <div align="center">
 
-<img src="public/icons/favicon.svg" alt="Hyperion" width="80" height="80" />
+<img src="public/icons/favicon.svg" alt="Hyperion" width="100" height="100" />
 
 # Hyperion
 
 **新一代 Clash 内核网页管理面板**
 
-基于 **SolidJS + Vite + TypeScript** 打造的高性能、现代化代理管理工具
+现代化、高性能的代理管理界面 | Apple 设计语言 | 实时光效动画
 
 [![Release](https://img.shields.io/github/v/release/Qing060325/Hyperion)](https://github.com/Qing060325/Hyperion/releases)
 [![License](https://img.shields.io/github/license/Qing060325/Hyperion)](LICENSE)
 [![SolidJS](https://img.shields.io/badge/SolidJS-1.9-2C4F7C)](https://www.solidjs.com/)
-[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF)](https://vitejs.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker&logoColor=white)]()
 
----
+[在线预览](https://github.com/Qing060325/Hyperion# screenshots) · [安装指南](#快速开始) · [API 文档](#clash-api-通信)
 
 </div>
 
-> **Hyperion（海珀利昂）** — 取自希腊神话中的光明泰坦神，象征光芒与力量。
-> 以暗黑科技美学为设计语言，为 Clash 代理内核提供极致的可视化管理体验。
-
 ---
 
-## 核心功能
+## 📖 项目介绍
 
-### 仪表盘
-- 实时流量图表（Canvas 渲染，双通道辉光特效）
-- 上传/下载速率实时监控
-- 活跃连接数、内存使用、运行时间统计
-- 一键切换 规则 / 全局 / 直连 模式
+**Hyperion（海珀利昂）** — 取自希腊神话中的光明泰坦神，专为 [Hades](https://github.com/Qing060325/Hades) / Clash 代理内核打造的现代化 Web 管理面板。
 
-### 代理管理
-- 可折叠代理组层级结构
-- 节点卡片：名称、协议标签、实时延迟
-- 五级延迟颜色编码（🟢优秀 → ⚪未知）
-- 单节点 / 全部延迟测试
-- 节点搜索过滤、代理集管理
+> 💡 **Hyperion + Hades = 完整的代理解决方案**
+> - Hades 提供高性能代理内核
+> - Hyperion 提供直观的 Web 管理界面
 
-### 连接管理
-- WebSocket 驱动的实时连接列表
-- 多维排序（主机/进程/规则/下载/上传）
-- 关键词精确过滤
-- 单条/批量关闭连接
-- 代理链路可视化
+### ✨ 设计亮点
 
-### 规则管理
-- 按类型着色的规则表（DOMAIN / IP-CIDR / GEOSITE 等）
-- 全文搜索、规则集管理
-- 可视化规则编辑器（拖拽排序、批量导入导出）
-
-### 日志系统
-- WebSocket 实时日志流
-- 四级过滤（Debug / Info / Warning / Error）
-- 关键词搜索、自动滚动控制
-- 日志导出（TXT / JSON / CSV）
-
-### 配置与 DNS
-- 配置重载、GeoIP 数据库更新、内核重启
-- DNS 查询工具（A / AAAA / CNAME / TXT / MX / NS）
-- Fake-IP 缓存管理
-
-### 订阅管理
-- 订阅增删改查、启用/禁用控制
-- 流量已用/总量进度条可视化
-- 一键批量更新
-
-### 系统设置
-- 语言切换（中文 / 英文）
-- API 地址、端口、密钥配置
-- 主题切换（暗色 / 亮色 / 跟随系统）
-- 系统代理、TUN 模式、允许局域网
-- 全局快捷键系统、通知管理
-
----
-
-## v0.3.0 亮点
-
-| 功能 | 说明 |
+| 特性 | 说明 |
 |------|------|
-| 🚀 **欢迎向导** | 首次启动引导，自动检测 Clash 内核 |
-| 📝 **规则编辑器** | 可视化编辑，拖拽排序，YAML 预览 |
-| 🎯 **策略组拖拽** | 节点拖拽排序调整 |
-| 📁 **多配置管理** | 多文件切换、导入导出、远程更新 |
-| 🌐 **网络模式** | TUN 模式开关、系统代理配置 |
-| 🗺️ **连接详情** | IP 地理定位、连接详情面板 |
-| 🎨 **主题系统** | 多款内置主题，深色/浅色切换 |
-| ⌨️ **快捷键** | 全局快捷键，可自定义绑定 |
-| 🔔 **通知系统** | 连接错误、订阅到期、新版本提醒 |
+| 🎨 **Apple 设计语言** | 简洁优雅的界面，圆角、阴影、毛玻璃效果 |
+| 🌓 **深色/浅色主题** | 自动跟随系统或手动切换 |
+| ⚡ **实时光效** | Canvas 渲染的流量图表，辉光动效 |
+| 📱 **响应式布局** | 完美适配桌面、平板、手机 |
+| 🎯 **零学习成本** | 直观的操作界面，无需记忆命令 |
 
 ---
 
-## 技术栈
+## 📸 界面预览
 
-| 层级 | 技术 | 说明 |
-|------|------|------|
-| **前端框架** | SolidJS 1.9 | 细粒度响应式，无 VDOM |
-| **开发语言** | TypeScript 5.7 | 全栈类型安全 |
-| **路由** | @solidjs/router | SolidJS 官方路由 |
-| **状态管理** | Solid.js Signals + Store | 原生响应式，零依赖 |
-| **样式方案** | Tailwind CSS 4.0 + DaisyUI | 原子化 CSS，组件库 |
-| **拖拽** | @dnd-kit | 可排序列表/网格 |
-| **构建工具** | Vite 6 | 极速 HMR |
-| **可视化** | Canvas API | 高性能实时图表 |
-| **实时通信** | WebSocket | 流量/日志/连接三路复用 |
-| **国际化** | 自研 i18n | 中英文双语 |
-| **验证** | Zod | 运行时类型校验 |
+<div align="center">
 
----
+| 仪表盘 (深色) | 代理管理 (深色) |
+|:--:|:--:|
+| ![Dashboard](screenshots/01-dashboard-dark.png) | ![Proxies](screenshots/02-proxies-dark.png) |
 
-## 项目结构
+| 仪表盘 (浅色) | 设置页面 |
+|:--:|:--:|
+| ![Dashboard Light](screenshots/03-dashboard-light.png) | ![Settings](screenshots/settings-proxy-mode.png) |
 
-```
-Hyperion/
-├── src/
-│   ├── App.tsx                  # 根组件 + 路由
-│   ├── main.tsx                 # 入口
-│   ├── index.css                # 全局样式 + 设计 Token
-│   ├── pages/                   # 页面组件
-│   │   ├── Dashboard.tsx        # 仪表盘
-│   │   ├── Proxies.tsx          # 代理管理
-│   │   ├── Connections.tsx      # 连接管理
-│   │   ├── Rules.tsx / RuleEditorPage.tsx  # 规则管理
-│   │   ├── Logs.tsx             # 日志
-│   │   ├── Configs.tsx          # 配置管理
-│   │   ├── DNS.tsx              # DNS 工具
-│   │   ├── Subscriptions.tsx    # 订阅管理
-│   │   └── Settings.tsx         # 系统设置
-│   ├── components/              # 通用组件
-│   │   ├── layout/              # 布局（Sidebar/MainLayout/MobileNav）
-│   │   ├── proxies/             # 代理相关（拖拽卡片/列表/管理器）
-│   │   ├── rules/               # 规则编辑器组件
-│   │   ├── connections/         # 连接详情
-│   │   ├── wizard/              # 欢迎向导（4步引导）
-│   │   ├── settings/            # 设置组件
-│   │   ├── logs/                # 日志过滤
-│   │   ├── network/             # 网络模式切换
-│   │   ├── extensions/          # 主题选择器
-│   │   └── profiles/            # 配置管理
-│   ├── services/                # API 服务层
-│   │   ├── clash-api.ts         # RESTful API 封装
-│   │   ├── clash-ws.ts          # WebSocket 管理器
-│   │   ├── clash-detector.ts    # 内核自动检测
-│   │   ├── hotkeys.ts           # 快捷键服务
-│   │   ├── geoip.ts             # GeoIP 查询
-│   │   ├── notification.ts      # 通知服务
-│   │   └── profile-manager.ts   # 配置文件管理
-│   ├── stores/                  # 全局状态
-│   │   ├── clash.ts             # Clash 连接状态
-│   │   ├── theme.ts             # 主题状态
-│   │   ├── settings.ts          # 应用设置
-│   │   ├── profiles.ts          # 配置文件状态
-│   │   ├── wizard.ts            # 向导状态
-│   │   └── proxy-drag.ts        # 拖拽状态
-│   ├── types/                   # TypeScript 类型
-│   ├── hooks/                   # 自定义 Hooks
-│   ├── utils/                   # 工具函数
-│   └── i18n/                    # 国际化
-├── public/                      # 静态资源
-├── config/                      # 配置文件
-├── test/                        # 测试数据
-├── docs/                        # 文档
-├── .github/workflows/           # CI/CD
-├── Dockerfile                   # Docker 构建
-├── nginx.conf                   # Nginx 配置
-├── vite.config.ts               # Vite 配置
-├── tsconfig.json                # TypeScript 配置
-└── package.json
-```
+</div>
+
+<details>
+<summary>查看更多截图</summary>
+
+| 连接管理 | 规则编辑 |
+|:--:|:--:|
+| ![Connections](screenshots/05-connections-light.png) | ![Rules](screenshots/06-rules-light.png) |
+
+| 订阅管理 | Hades 集成 |
+|:--:|:--:|
+| ![Subscriptions](screenshots/subscriptions-import.png) | ![Hades](screenshots/hades-dashboard.png) |
+
+</details>
 
 ---
 
-## Clash API 通信
+## 🚀 快速开始
 
-Hyperion 通过 Clash RESTful API 和 WebSocket 与内核通信：
-
-**RESTful API**
-
-| 方法 | 路径 | 功能 |
-|------|------|------|
-| GET | `/version` | 获取版本 |
-| GET/PATCH | `/configs` | 读取/更新配置 |
-| PUT | `/configs` | 重载配置 |
-| POST | `/configs/geo` | 更新 GeoIP |
-| GET | `/proxies` | 获取代理列表 |
-| PUT | `/proxies/{name}` | 切换节点 |
-| GET | `/proxies/{name}/delay` | 延迟测试 |
-| GET | `/rules` | 获取规则 |
-| GET/DELETE | `/connections` | 获取/关闭连接 |
-| GET | `/dns/query` | DNS 查询 |
-
-**WebSocket 流**
-
-| 端点 | 数据 | 说明 |
-|------|------|------|
-| `/traffic` | `{ up, down }` | 实时速率 |
-| `/logs` | `{ type, payload }` | 日志推送 |
-| `/connections` | 连接详情 | 连接更新 |
-
----
-
-## 快速开始
-
-### 环境要求
-
-| 依赖 | 最低版本 |
-|------|----------|
-| Node.js | 18+ |
-| pnpm | 8+ |
-
-### 安装与运行
+### 方式一：Docker Compose（推荐）
 
 ```bash
 # 克隆仓库
 git clone https://github.com/Qing060325/Hyperion.git
 cd Hyperion
 
-# 安装依赖
-pnpm install
+# 启动服务
+docker compose up -d
 
-# 开发模式
-pnpm dev
-
-# 构建生产版本
-pnpm build
+# 访问 http://localhost:8080
 ```
 
-### Docker 部署
+### 方式二：一键安装脚本
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Qing060325/Hyperion/main/install_hyperion.sh | sudo bash
+```
+
+### 方式三：手动部署
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/Qing060325/Hyperion.git
+cd Hyperion
+
+# 2. 安装依赖
+pnpm install
+
+# 3. 配置代理 API
+# 编辑 .env 文件，设置 Hades/Clash API 地址
+cp .env.example .env
+
+# 4. 构建并运行
+pnpm build
+# 或使用 Docker
 docker build -t hyperion .
 docker run -d -p 8080:80 hyperion
 ```
 
 ---
 
-## 开发路线
+## 🔧 配置说明
 
-- [x] v0.1.0-beta — 核心功能（仪表盘/代理/连接/规则/日志/配置）
-- [x] v0.3.0 — 规则编辑器、欢迎向导、多配置管理、主题系统、快捷键
-- [ ] v0.5.0 — 配置合并（Merge）与脚本（Script）支持
-- [ ] v0.8.0 — 性能优化（虚拟列表、WebGPU 图表）
-- [ ] v1.0.0 — 正式版发布
+### 连接到 Hades/Clash
+
+Hyperion 通过 RESTful API 和 WebSocket 与代理内核通信：
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| API 地址 | `127.0.0.1` | Hades/Clash API 地址 |
+| API 端口 | `9090` | Hades/Clash API 端口 |
+| 密钥 | 空 | 如果设置了 secret，需要填写 |
+| 使用代理 | 开启 | 通过前端代理转发 API 请求 |
+
+### Docker Compose 完整配置
+
+```yaml
+version: '3.8'
+
+services:
+  hyperion:
+    build: .
+    container_name: hyperion
+    ports:
+      - "8080:8080"
+    environment:
+      - CLASH_API_HOST=hades  # Hades 服务名
+      - CLASH_API_PORT=9090
+    networks:
+      - proxy-network
+    depends_on:
+      - hades
+
+  hades:
+    image: ghcr.io/qing060325/hades:latest
+    container_name: hades
+    ports:
+      - "7890:7890"  # 代理端口
+      - "9090:9090"  # API 端口
+    volumes:
+      - ./config:/etc/hades
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    driver: bridge
+```
 
 ---
 
-## 贡献指南
+## 📦 核心功能
+
+### 📊 仪表盘
+- 实时流量图表（上传/下载双通道）
+- 运行状态监控（内存、连接数、运行时间）
+- 代理模式一键切换（规则/全局/直连）
+
+### 🌐 代理管理
+- 代理组层级结构展示
+- 节点延迟测试（颜色编码）
+- 拖拽排序节点
+- 节点搜索过滤
+
+### 🔗 连接管理
+- WebSocket 实时连接列表
+- 多维度排序和过滤
+- 一键关闭连接
+- 代理链路追踪
+
+### 📋 规则管理
+- 规则列表展示（按类型着色）
+- 可视化规则编辑器
+- 规则拖拽排序
+- 规则集管理
+
+### 📝 日志系统
+- WebSocket 实时日志
+- 四级日志过滤（Debug/Info/Warning/Error）
+- 关键词搜索
+- 日志导出
+
+### ⚙️ 系统设置
+- 主题切换（深色/浅色/跟随系统）
+- 语言切换（中文/英文）
+- API 连接配置
+- 全局快捷键
+- TUN 模式开关
+
+---
+
+## 🛠️ 技术栈
+
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| [SolidJS](https://www.solidjs.com/) | 1.9 | 细粒度响应式框架 |
+| [TypeScript](https://www.typescriptlang.org/) | 5.7 | 类型安全 |
+| [Vite](https://vitejs.dev/) | 6.0 | 极速构建工具 |
+| [Tailwind CSS](https://tailwindcss.com/) | 4.0 | 原子化 CSS |
+| [DaisyUI](https://daisyui.com/) | 5.0 | Tailwind 组件库 |
+| [@dnd-kit](https://dndkit.com/) | - | 拖拽排序 |
+
+---
+
+## 🏗️ 项目结构
+
+```
+Hyperion/
+├── src/
+│   ├── pages/           # 页面组件
+│   │   ├── Dashboard.tsx      # 仪表盘
+│   │   ├── Proxies.tsx        # 代理管理
+│   │   ├── Connections.tsx    # 连接管理
+│   │   ├── Rules.tsx          # 规则管理
+│   │   ├── Logs.tsx           # 日志
+│   │   ├── Subscriptions.tsx  # 订阅管理
+│   │   └── Settings.tsx       # 系统设置
+│   ├── components/      # 通用组件
+│   ├── services/        # API 服务
+│   ├── stores/          # 状态管理
+│   └── types/           # TypeScript 类型
+├── config/              # 配置文件
+├── screenshots/         # 项目截图
+└── docs/                # 文档
+```
+
+---
+
+## 🔌 Clash API 通信
+
+Hyperion 通过以下端点与 Hades/Clash 通信：
+
+**RESTful API**
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| GET | `/version` | 获取版本信息 |
+| GET | `/proxies` | 获取代理列表 |
+| PUT | `/proxies/{name}` | 切换节点 |
+| GET | `/connections` | 获取连接列表 |
+| DELETE | `/connections` | 关闭所有连接 |
+
+**WebSocket 流**
+
+| 端点 | 数据 |
+|------|------|
+| `/traffic` | 实时流量速率 |
+| `/logs` | 日志推送 |
+| `/connections` | 连接更新 |
+
+---
+
+## 🔄 与 Hades 集成
+
+Hyperion 完美配合 [Hades](https://github.com/Qing060325/Hades) 代理内核：
+
+```bash
+# 1. 安装 Hades
+curl -fsSL https://raw.githubusercontent.com/Qing060325/Hades/main/hades_manager.sh | sudo bash
+
+# 2. 部署 Hyperion
+curl -fsSL https://raw.githubusercontent.com/Qing060325/Hyperion/main/install_hyperion.sh | sudo bash
+
+# 3. 访问 Hyperion 面板配置 Hades 连接
+# 默认地址: http://localhost:8080
+```
+
+---
+
+## 📚 相关项目
+
+| 项目 | 说明 | 链接 |
+|------|------|------|
+| **Hades** | 高性能代理内核（Go） | [GitHub](https://github.com/Qing060325/Hades) |
+| **Hyperion** | Web 管理面板（本仓库） | [GitHub](https://github.com/Qing060325/Hyperion) |
+
+---
+
+## 🤝 贡献指南
 
 1. Fork 本仓库
-2. 创建功能分支：`git checkout -b feature/my-feature`
-3. 提交更改：`git commit -m 'Add some feature'`
-4. 推送分支：`git push origin feature/my-feature`
+2. 创建功能分支：`git checkout -b feature/xxx`
+3. 提交更改：`git commit -m 'Add xxx'`
+4. 推送分支：`git push origin feature/xxx`
 5. 提交 Pull Request
 
 ---
 
-## 许可证
+## 📄 许可证
 
 [MIT License](LICENSE)
 
@@ -265,5 +308,7 @@ docker run -d -p 8080:80 hyperion
 <div align="center">
 
 **Hyperion** — 以光明之名，掌控网络之流
+
+Made with ❤️ by [Qing060325](https://github.com/Qing060325)
 
 </div>
