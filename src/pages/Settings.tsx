@@ -1,7 +1,7 @@
 import { createSignal, createEffect, Show } from "solid-js";
 import { useThemeStore } from "@/stores/theme";
 import { useClashStore } from "@/stores/clash";
-import { Sun, Moon, Monitor, Check, Link2, Unlink } from "lucide-solid";
+import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle } from "lucide-solid";
 
 type Theme = "light" | "dark" | "system";
 
@@ -211,6 +211,9 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* System Upgrade */}
+      <SystemUpgrade clash={clash} />
+
       {/* About */}
       <div class="card bg-base-100 animate-card-in stagger-5">
         <div class="px-4 pt-4 pb-2">
@@ -220,7 +223,7 @@ export default function Settings() {
           <SettingRow label="Hyperion 版本">
             <span class="badge badge-sm badge-ghost font-mono">v0.3.0</span>
           </SettingRow>
-          <SettingRow label="Clash Meta 版本">
+          <SettingRow label="Hades 版本">
             <span class="badge badge-sm badge-ghost font-mono">{clash.version()?.version || "-"}</span>
           </SettingRow>
           <SettingRow label="架构">
@@ -244,5 +247,242 @@ function SettingRow(props: { label: string; desc?: string; children: any }) {
       </div>
       {props.children}
     </div>
+  );
+}
+
+// SystemUpgrade 系统升级组件
+function SystemUpgrade(props: { clash: any }) {
+  const [checking, setChecking] = createSignal(false);
+  const [upgrading, setUpgrading] = createSignal(false);
+  const [upgradeStatus, setUpgradeStatus] = createSignal<{
+    status: string;
+    message: string;
+    progress: number;
+    current?: string;
+    latest?: string;
+  } | null>(null);
+  const [showModal, setShowModal] = createSignal(false);
+
+  // 检查更新
+  const checkUpgrade = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch(`${props.clash.baseUrl()}/upgrade`, {
+        method: "POST",
+        headers: props.clash.headers(),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUpgradeStatus({
+          status: data.need_upgrade ? "downloading" : "idle",
+          message: data.message,
+          progress: 0,
+          current: data.current,
+          latest: data.latest,
+        });
+        setShowModal(true);
+
+        if (data.need_upgrade) {
+          setUpgrading(true);
+          // 开始轮询状态
+          pollUpgradeStatus();
+        }
+      } else {
+        const error = await res.json();
+        alert(`检查更新失败: ${error.error || "未知错误"}`);
+      }
+    } catch (e) {
+      console.error("检查更新失败:", e);
+      alert("检查更新失败，请检查网络连接");
+    }
+    setChecking(false);
+  };
+
+  // 轮询升级状态
+  const pollUpgradeStatus = async () => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${props.clash.baseUrl()}/upgrade/status`, {
+          headers: props.clash.headers(),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUpgradeStatus(data);
+
+          if (data.status === "completed" || data.status === "failed") {
+            clearInterval(interval);
+            setUpgrading(false);
+          }
+        }
+      } catch (e) {
+        console.error("获取升级状态失败:", e);
+      }
+    }, 2000);
+
+    // 30秒后自动停止轮询
+    setTimeout(() => clearInterval(interval), 30000);
+  };
+
+  // 获取状态颜色
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "text-success";
+      case "failed":
+        return "text-error";
+      case "downloading":
+      case "installing":
+        return "text-primary";
+      default:
+        return "text-base-content/60";
+    }
+  };
+
+  // 获取状态图标
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <Check class="w-5 h-5 text-success" />;
+      case "failed":
+        return <AlertCircle class="w-5 h-5 text-error" />;
+      case "downloading":
+      case "installing":
+        return <RefreshCw class="w-5 h-5 animate-spin text-primary" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <div class="card bg-base-100 animate-card-in stagger-4">
+        <div class="px-4 pt-4 pb-2">
+          <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">系统</span>
+        </div>
+        <div class="divide-y divide-base-200/50">
+          <SettingRow label="Hades 内核升级" desc="检查并安装最新版本">
+            <button
+              class={`btn btn-sm rounded-xl gap-1.5 ${upgrading() ? "btn-disabled" : "btn-outline btn-primary"}`}
+              onClick={checkUpgrade}
+              disabled={upgrading()}
+            >
+              {checking() ? (
+                <RefreshCw class="w-4 h-4 animate-spin" />
+              ) : upgrading() ? (
+                <RefreshCw class="w-4 h-4 animate-spin" />
+              ) : (
+                <Download class="w-4 h-4" />
+              )}
+              {checking() ? "检查中..." : upgrading() ? "升级中..." : "检查更新"}
+            </button>
+          </SettingRow>
+        </div>
+      </div>
+
+      {/* 升级状态弹窗 */}
+      <Show when={showModal()}>
+        <div class="modal modal-open">
+          <div class="modal-box max-w-md">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold">系统升级</h3>
+              <button
+                class="btn btn-ghost btn-sm btn-circle"
+                onClick={() => setShowModal(false)}
+                disabled={upgrading()}
+              >
+                <span class="text-lg">×</span>
+              </button>
+            </div>
+
+            <Show when={upgradeStatus()}>
+              {(status) => (
+                <div class="space-y-4">
+                  {/* 版本信息 */}
+                  <Show when={status().current && status().latest}>
+                    <div class="flex items-center justify-between bg-base-200 rounded-lg p-3">
+                      <div>
+                        <div class="text-xs text-base-content/60">当前版本</div>
+                        <div class="font-mono font-medium">{status().current}</div>
+                      </div>
+                      <div class="text-2xl text-base-content/30">→</div>
+                      <div class="text-right">
+                        <div class="text-xs text-base-content/60">最新版本</div>
+                        <div class="font-mono font-medium text-primary">{status().latest}</div>
+                      </div>
+                    </div>
+                  </Show>
+
+                  {/* 状态显示 */}
+                  <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
+                    {getStatusIcon(status().status)}
+                    <div class="flex-1">
+                      <div class={`font-medium ${getStatusColor(status().status)}`}>
+                        {status().message}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 进度条 */}
+                  <Show when={status().status === "downloading" || status().status === "installing"}>
+                    <div>
+                      <div class="flex justify-between text-sm mb-1">
+                        <span>升级进度</span>
+                        <span>{status().progress}%</span>
+                      </div>
+                      <div class="w-full bg-base-300 rounded-full h-2">
+                        <div
+                          class="h-2 rounded-full bg-primary transition-all duration-300"
+                          style={{ width: `${status().progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </Show>
+
+                  {/* 重启提示 */}
+                  <Show when={status().status === "completed"}>
+                    <div class="alert alert-success">
+                      <Check class="w-5 h-5" />
+                      <span>升级完成！请重启 Hades 服务以应用新版本。</span>
+                    </div>
+                  </Show>
+
+                  {/* 错误提示 */}
+                  <Show when={status().status === "failed"}>
+                    <div class="alert alert-error">
+                      <AlertCircle class="w-5 h-5" />
+                      <span>升级失败，请稍后重试或手动升级。</span>
+                    </div>
+                  </Show>
+                </div>
+              )}
+            </Show>
+
+            <div class="modal-action">
+              <button
+                class="btn btn-ghost"
+                onClick={() => setShowModal(false)}
+                disabled={upgrading()}
+              >
+                {upgrading() ? "升级中..." : "关闭"}
+              </button>
+              <Show when={upgradeStatus()?.status === "completed"}>
+                <button
+                  class="btn btn-primary"
+                  onClick={() => {
+                    // 重启服务（通过 API 或提示用户）
+                    alert("请手动重启 Hades 服务以完成升级");
+                    setShowModal(false);
+                  }}
+                >
+                  我知道了
+                </button>
+              </Show>
+            </div>
+          </div>
+        </div>
+      </Show>
+    </>
   );
 }
