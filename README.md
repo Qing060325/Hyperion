@@ -91,6 +91,8 @@ sudo install.sh uninstall  # 卸载
 ```
 
 > 📌 安装脚本 v3.0：自动检测 Docker、生成配置、健康检查、旧版迁移，一条命令搞定一切。
+>
+> ⚠️ **注意**：首次安装可能需要 3-5 分钟来构建 Docker 镜像，请耐心等待。如遇到问题，请参考下方的[故障排除](#故障排除)部分。
 
 ### 方式二：Docker Compose
 
@@ -302,6 +304,40 @@ curl -fsSL https://raw.githubusercontent.com/Qing060325/Hyperion/main/install.sh
 |------|------|------|
 | **Hades** | 高性能代理内核（Go） | [GitHub](https://github.com/Qing060325/Hades) |
 | **Hyperion** | Web 管理面板（本仓库） | [GitHub](https://github.com/Qing060325/Hyperion) |
+
+---
+
+## 🔧 故障排除
+
+### Docker 构建失败
+
+**问题**: `iptables` 或 `permission denied` 错误
+
+**解决方案**:
+```bash
+# 确保 Docker 服务正常运行
+ sudo systemctl restart docker
+
+# 需要时清理旧的镜像和容器
+ docker system prune -a
+```
+
+### 无法连接 Hades
+
+**问题**: 接口返回 `Connection refused`
+
+**解决方案**:
+1. 检查 Hades 是否正常运行: `curl http://localhost:9090/version`
+2. 检查配置文件: `cat /etc/hades/config.yaml`
+3. 查看 Hades 日志: `sudo tail -f /var/log/hades/hades.log`
+
+### 于旧版本升级
+
+**安装脚本会自动棁测并迁移旧版本的配置**，但建议手动备份：
+```bash
+cp /opt/hyperion/.env /opt/hyperion/.env.backup
+cp /opt/hyperion/config/config.yaml /opt/hyperion/config/config.yaml.backup
+```
 
 ---
 
