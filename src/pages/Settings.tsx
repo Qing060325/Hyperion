@@ -4,6 +4,7 @@ import { useClashStore } from "@/stores/clash";
 import { useSettingsStore } from "@/stores/settings";
 import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle } from "lucide-solid";
 import ripple from "@/components/ui/RippleEffect";
+import HadesKernelManager from "@/components/kernel/HadesKernelManager";
 
 type Theme = "light" | "dark" | "system";
 
@@ -228,6 +229,11 @@ export default function Settings() {
             </select>
           </SettingRow>
         </div>
+      </div>
+
+      {/* Hades Kernel Manager */}
+      <div class="animate-card-spring stagger-4">
+        <HadesKernelManager />
       </div>
 
       {/* System Upgrade */}
