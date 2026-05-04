@@ -892,3 +892,33 @@ body {
   background: var(--color-primary);
   animation: scalePop 0.3s var(--ease-spring);
 }
+
+.scenic-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.scenic-layer.scenic-enabled { opacity: 1; }
+
+.scenic-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: saturate(1.05) contrast(1.02);
+  transition: background-image 1200ms ease-in-out;
+}
+
+.scenic-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(238,242,255,0.72), rgba(219,234,254,0.62) 45%, rgba(255,255,255,0.45));
+}
+
+[data-theme="dark"] .scenic-overlay {
+  background: linear-gradient(120deg, rgba(15,23,42,0.72), rgba(30,41,59,0.62) 50%, rgba(17,24,39,0.52));
+}

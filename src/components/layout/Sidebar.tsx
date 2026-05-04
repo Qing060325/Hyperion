@@ -1,5 +1,5 @@
 import { createSignal, For } from "solid-js";
-import { A, useNavigate, useLocation } from "@solidjs/router";
+import { A, useLocation } from "@solidjs/router";
 import {
   LayoutDashboard,
   Globe,
@@ -10,10 +10,10 @@ import {
   Server,
   Inbox,
   ChevronLeft,
-  Zap,
 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useThemeStore } from "@/stores/theme";
+import { useSettingsStore } from "@/stores/settings";
 import { Moon, Sun, Monitor } from "lucide-solid";
 import ripple from "@/components/ui/RippleEffect";
 
@@ -30,10 +30,10 @@ const navItems = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = createSignal(false);
-  const navigate = useNavigate();
   const location = useLocation();
   const clash = useClashStore();
   const themeStore = useThemeStore();
+  const settingsStore = useSettingsStore();
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -163,7 +163,21 @@ export default function Sidebar() {
           {!collapsed() && <span class="whitespace-nowrap">收起侧栏</span>}
         </button>
 
-        {/* Version */}
+
+        {!collapsed() && (
+          <div class="mx-1 mt-1 rounded-xl bg-base-200/50 p-3 border border-base-300/60">
+            <div class="text-xs font-semibold">🌄 风景模式</div>
+            <div class="text-[11px] text-base-content/60 mt-1">根据 VPN 节点地区自动切换背景</div>
+            <div class="mt-2 flex items-center justify-between">
+              <span class="text-[11px] text-base-content/60">自动切换</span>
+              <label class="toggle toggle-xs toggle-primary">
+                <input type="checkbox" checked={settingsStore.settings().sakura_skin} onChange={() => settingsStore.updateSettings({ sakura_skin: !settingsStore.settings().sakura_skin })} />
+              </label>
+            </div>
+          </div>
+        )}
+
+                {/* Version */}
         {!collapsed() && (
           <div class="text-[11px] text-base-content/40 text-center pt-1 animate-fade-left">
             v0.5.0

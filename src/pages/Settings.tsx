@@ -171,9 +171,9 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Sakura Skin Toggle */}
+        {/* Scenic Mode Toggle */}
         <div class="divide-y divide-base-200/50">
-          <SettingRow label="樱花特效" desc="开启飘落樱花粒子动画">
+          <SettingRow label="风景模式" desc="根据 VPN 节点地区自动切换景观背景">
             <label class="toggle toggle-sm toggle-primary">
               <input
                 type="checkbox"

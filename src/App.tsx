@@ -1,4 +1,4 @@
-import { onMount, Show, createEffect, type ParentProps } from "solid-js";
+import { onMount, Show, createEffect, createSignal, onCleanup, type ParentProps } from "solid-js";
 import { Router, Route, useNavigate } from "@solidjs/router";
 import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
@@ -7,6 +7,7 @@ import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import SakuraCanvas from "./components/sakura/SakuraCanvas";
+import ScenicBackdrop from "./components/scenic/ScenicBackdrop";
 import PageTransition from "./components/ui/PageTransition";
 import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
@@ -78,15 +79,37 @@ function Root(props: ParentProps) {
     import("./services/hotkeys").then(({ hotkeyService }) => {
       const navigate = useNavigate();
       hotkeyService.onAction('toggle-proxy', () => {});
-      hotkeyService.onAction('reload-config', () => { clash.reloadConfig(); });
+      hotkeyService.onAction('reload-config', () => { clash.connect(); });
       hotkeyService.onAction('show-connections', () => { navigate('/connections'); });
       hotkeyService.onAction('show-proxies', () => { navigate('/proxies'); });
       hotkeyService.onAction('open-settings', () => { navigate('/settings'); });
     });
   });
 
+  const clash = useClashStore();
+  const [activeNode, setActiveNode] = createSignal("");
+
+  onMount(() => {
+    const fetchActiveNode = async () => {
+      try {
+        const res = await fetch(`${clash.baseUrl()}/proxies`, { headers: clash.headers() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const globalNow = data?.proxies?.GLOBAL?.now || data?.proxies?.["🚀 节点选择"]?.now || "";
+        if (globalNow) setActiveNode(globalNow);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    fetchActiveNode();
+    const timer = setInterval(fetchActiveNode, 15000);
+    onCleanup(() => clearInterval(timer));
+  });
+
   return (
     <div class="app-layout bg-base-200 noise-bg">
+      <ScenicBackdrop nodeName={activeNode()} />
       <SakuraCanvas />
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>
