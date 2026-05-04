@@ -3,6 +3,7 @@
 // ==========================================
 
 import { useClashStore } from "../stores/clash";
+import { useScenicModeStore } from "../stores/scenicMode";
 import type { TrafficData, LogEntry, ConnectionsData } from "../types/clash";
 
 type TrafficCallback = (data: TrafficData) => void;
@@ -62,6 +63,27 @@ export class ClashWebSocketManager {
     return url;
   }
 
+
+  private extractPrimaryNode(data: ConnectionsData): string | null {
+    const counts = new Map<string, number>();
+    for (const conn of data.connections || []) {
+      const chain = conn.chains || [];
+      const terminal = chain[chain.length - 1]?.trim();
+      if (!terminal) continue;
+      counts.set(terminal, (counts.get(terminal) || 0) + 1);
+    }
+
+    let best: string | null = null;
+    let bestCount = 0;
+    for (const [node, count] of counts) {
+      if (count > bestCount) {
+        best = node;
+        bestCount = count;
+      }
+    }
+    return best;
+  }
+
   // === Traffic ===
   connectTraffic(callback: TrafficCallback) {
     this.trafficCallback = callback;
@@ -100,7 +122,11 @@ export class ClashWebSocketManager {
       (ws) => (this.connectionsWs = ws),
       (data) => {
         try {
-          this.connectionsCallback?.(JSON.parse(data));
+          const parsed = JSON.parse(data) as ConnectionsData;
+          this.connectionsCallback?.(parsed);
+
+          const primaryNode = this.extractPrimaryNode(parsed);
+          useScenicModeStore().observeNode(primaryNode);
         } catch { /* ignore parse errors */ }
       },
       "connections",
@@ -127,6 +153,9 @@ export class ClashWebSocketManager {
 
       ws.onopen = () => {
         this.setState(type, "connected");
+        if (type === "connections") {
+          useScenicModeStore().setFrozen(false);
+        }
       };
 
       ws.onmessage = (event) => {
@@ -137,6 +166,9 @@ export class ClashWebSocketManager {
 
       ws.onclose = () => {
         this.setState(type, "disconnected");
+        if (type === "connections") {
+          useScenicModeStore().setFrozen(true);
+        }
         this.handleReconnect(path, setWs, onMessage, type, 0);
       };
 
@@ -191,6 +223,7 @@ export class ClashWebSocketManager {
     this._trafficState = "disconnected";
     this._logsState = "disconnected";
     this._connectionsState = "disconnected";
+    useScenicModeStore().setFrozen(true);
     this.stateListeners.forEach((fn) => fn());
   }
 
@@ -218,6 +251,7 @@ export class ClashWebSocketManager {
     this.connectionsWs?.close();
     this.connectionsWs = null;
     this._connectionsState = "disconnected";
+    useScenicModeStore().setFrozen(true);
     this.stateListeners.forEach((fn) => fn());
   }
 }
