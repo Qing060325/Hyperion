@@ -5,6 +5,7 @@ import { useClashStore } from "./stores/clash";
 import { useSettingsStore } from "./stores/settings";
 import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
+import ScenicBackground from "./components/layout/ScenicBackground";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import SakuraCanvas from "./components/sakura/SakuraCanvas";
 import PageTransition from "./components/ui/PageTransition";
@@ -86,7 +87,8 @@ function Root(props: ParentProps) {
   });
 
   return (
-    <div class="app-layout bg-base-200 noise-bg">
+    <div class="app-layout bg-base-200 noise-bg" style={{ position: "relative" }}>
+      <ScenicBackground />
       <SakuraCanvas />
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>
