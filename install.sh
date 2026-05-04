@@ -108,8 +108,25 @@ check_docker() {
 
 install_docker() {
   step "自动安装 Docker"
-  info "使用官方安装脚本..."
-  curl -fsSL https://get.docker.com | sudo sh
+  info "即将执行 Docker 官方安装脚本 (https://get.docker.com)"
+  warn "此操作需要 root 权限，将安装 Docker 及其依赖"
+  echo ""
+
+  local script="/tmp/get-docker.sh"
+  curl -fsSL https://get.docker.com -o "$script"
+
+  # 基本校验：确认是 shell 脚本且非空
+  if [ ! -s "$script" ]; then
+    rm -f "$script"
+    die "Docker 安装脚本下载失败"
+  fi
+  if ! head -1 "$script" | grep -qE '^#!/'; then
+    rm -f "$script"
+    die "Docker 安装脚本格式异常，中止安装"
+  fi
+
+  sudo sh "$script"
+  rm -f "$script"
   sudo systemctl enable --now docker
   ok "Docker 安装完成"
 }
@@ -198,8 +215,11 @@ CFGEOF
 
   # 确保 external-controller 绑定 0.0.0.0（Docker 容器内必须）
   if grep -q "external-controller: 127.0.0.1" "${CONFIG_DIR}/config.yaml" 2>/dev/null; then
-    sed -i 's/external-controller: 127.0.0.1/external-controller: 0.0.0.0/' "${CONFIG_DIR}/config.yaml"
-    ok "已修复 external-controller 绑定地址 → 0.0.0.0"
+    if sed -i 's/external-controller: 127.0.0.1/external-controller: 0.0.0.0/' "${CONFIG_DIR}/config.yaml" 2>/dev/null; then
+      ok "已修复 external-controller 绑定地址 → 0.0.0.0"
+    else
+      warn "修复 external-controller 绑定地址失败，请手动修改"
+    fi
   fi
 }
 
