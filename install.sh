@@ -256,12 +256,32 @@ do_install() {
 
   # 克隆
   step "下载 Hyperion"
+  # 检查目录是否已有完整安装
   if [ -d "$INSTALL_DIR" ] && [ -d "${INSTALL_DIR}/.git" ]; then
-    warn "安装目录已存在: $INSTALL_DIR"
-    cd "$INSTALL_DIR"
-    git fetch --all 2>/dev/null || true
-    git reset --hard origin/main 2>/dev/null || true
-    ok "已更新到最新代码"
+    # 验证 git 仓库是否完整
+    if git -C "$INSTALL_DIR" status &>/dev/null; then
+      warn "安装目录已存在: $INSTALL_DIR"
+      cd "$INSTALL_DIR"
+      info "更新到最新版本..."
+      timeout 30 git fetch --all 2>/dev/null || true
+      git reset --hard origin/main 2>/dev/null || true
+      ok "已更新到最新代码"
+    else
+      warn "安装目录存在但仓库已损坏，将重新安装"
+      sudo rm -rf "$INSTALL_DIR"
+      sudo mkdir -p "$INSTALL_DIR"
+      sudo git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+      sudo chown -R "$(whoami):$(id -gn)" "$INSTALL_DIR"
+      ok "代码克隆完成"
+    fi
+  elif [ -d "$INSTALL_DIR" ]; then
+    # 目录存在但不是 git 仓库（残留目录）
+    warn "安装目录存在但非完整安装，将清理重装"
+    sudo rm -rf "$INSTALL_DIR"
+    sudo mkdir -p "$INSTALL_DIR"
+    sudo git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+    sudo chown -R "$(whoami):$(id -gn)" "$INSTALL_DIR"
+    ok "代码克隆完成"
   else
     sudo rm -rf "$INSTALL_DIR"
     sudo mkdir -p "$INSTALL_DIR"
