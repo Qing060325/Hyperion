@@ -250,6 +250,8 @@ export interface HyperionSettings {
   auto_detect_clash: boolean;
   // v0.4.0 新增
   sakura_skin: boolean;
+  landscape_mode: boolean;
+  landscape_local_only: boolean;
 }
 
 export const DEFAULT_SETTINGS: HyperionSettings = {
@@ -267,6 +269,8 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   auto_detect_clash: true,
   // v0.4.0 新增
   sakura_skin: false,
+  landscape_mode: false,
+  landscape_local_only: false,
 };
 
 // ==========================================

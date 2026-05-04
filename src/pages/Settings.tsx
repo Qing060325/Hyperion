@@ -173,6 +173,25 @@ export default function Settings() {
 
         {/* Sakura Skin Toggle */}
         <div class="divide-y divide-base-200/50">
+
+          <SettingRow label="风景模式" desc="启用动态风景背景切换（带预加载）">
+            <label class="toggle toggle-sm toggle-primary">
+              <input
+                type="checkbox"
+                checked={settingsStore.settings().landscape_mode}
+                onChange={() => settingsStore.updateSettings({ landscape_mode: !settingsStore.settings().landscape_mode })}
+              />
+            </label>
+          </SettingRow>
+          <SettingRow label="仅本地资源" desc="低带宽模式：禁用在线图片拉取" >
+            <label class="toggle toggle-sm toggle-primary">
+              <input
+                type="checkbox"
+                checked={settingsStore.settings().landscape_local_only}
+                onChange={() => settingsStore.updateSettings({ landscape_local_only: !settingsStore.settings().landscape_local_only })}
+              />
+            </label>
+          </SettingRow>
           <SettingRow label="樱花特效" desc="开启飘落樱花粒子动画">
             <label class="toggle toggle-sm toggle-primary">
               <input

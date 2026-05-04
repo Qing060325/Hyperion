@@ -7,6 +7,7 @@ import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import SakuraCanvas from "./components/sakura/SakuraCanvas";
+import LandscapeBackground from "./components/landscape/LandscapeBackground";
 import PageTransition from "./components/ui/PageTransition";
 import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
@@ -72,6 +73,8 @@ export default function App() {
 }
 
 function Root(props: ParentProps) {
+  const settingsStore = useSettingsStore();
+
   // Initialize hotkey service inside Router context (has access to navigate)
   onMount(() => {
     const clash = useClashStore();
@@ -88,6 +91,9 @@ function Root(props: ParentProps) {
   return (
     <div class="app-layout bg-base-200 noise-bg">
       <SakuraCanvas />
+      <Show when={settingsStore.settings().landscape_mode}>
+        <LandscapeBackground />
+      </Show>
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>
         <div class="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
