@@ -1,21 +1,17 @@
-FROM debian:bookworm-slim
+FROM alpine:3.20
 
 LABEL maintainer="Qing060325"
 LABEL description="Hades - 高性能代理内核"
 
-WORKDIR /app
+RUN apk add --no-cache ca-certificates wget
 
-# Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Download Hades
-ARG HADES_VERSION=v0.5.0
-RUN wget -qO /usr/local/bin/hades "https://github.com/Qing060325/Hades/releases/download/${HADES_VERSION}/hades-linux-amd64" \
+# 从 GitHub Releases 下载 Hades
+ARG HADES_VERSION=v1.0.0
+ARG TARGETARCH=amd64
+RUN wget -qO /usr/local/bin/hades \
+      "https://github.com/Qing060325/Hades/releases/download/${HADES_VERSION}/hades-linux-${TARGETARCH}" \
     && chmod +x /usr/local/bin/hades
 
-# Create config dir
 RUN mkdir -p /root/.config/hades/providers
 
 EXPOSE 7890 9090

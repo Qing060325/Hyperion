@@ -19,7 +19,10 @@ export interface KernelStatus {
 }
 
 class HadesKernelService {
-  private baseUrl = "http://localhost:9090";
+  private get baseUrl() {
+    // 优先使用环境变量，否则走 nginx 反代
+    return import.meta.env.VITE_HADES_API_URL || "/api";
+  }
   private checkInterval = 30000; // 30 秒
 
   /**

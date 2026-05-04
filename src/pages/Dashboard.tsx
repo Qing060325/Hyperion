@@ -56,7 +56,7 @@ export default function Dashboard() {
     if (clash.config()) setMode(clash.config()?.mode || "rule");
     connectTrafficWs();
     fetchMemory();
-    const memInterval = setInterval(fetchMemory, 3000);
+    const memInterval = setInterval(fetchMemory, 10000);
     onCleanup(() => {
       clearInterval(memInterval);
       wsManager.disconnectTraffic();

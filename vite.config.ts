@@ -30,12 +30,24 @@ export default defineConfig({
   build: {
     target: "esnext",
     minify: "esbuild",
+    cssCodeSplit: true,
     rollupOptions: {
+      output: {
+        manualChunks: {
+          "solid-core": ["solid-js", "@solidjs/router"],
+          "dnd-kit": ["@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities"],
+        },
+        chunkFileNames: "assets/js/[name]-[hash].js",
+        entryFileNames: "assets/js/[name]-[hash].js",
+        assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
+      },
       onwarn(warning, warn) {
         if (warning.code === "UNRESOLVED_IMPORT") return;
         warn(warning);
       },
     },
+    sourcemap: false,
+    reportCompressedSize: true,
   },
   test: {
     environment: "jsdom",
