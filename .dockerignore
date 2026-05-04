@@ -1,5 +1,6 @@
 config/
 .env
+.env.*
 *.log
 node_modules/
 dist/
@@ -11,3 +12,16 @@ Thumbs.db
 *.swo
 .playwright-cli/
 test/
+__tests__/
+e2e/
+.git/
+.github/
+*.md
+!README.md
+screenshots/
+docs/
+public/
+.husky/
+.prettierrc*
+.eslintrc*
+.commitlint*

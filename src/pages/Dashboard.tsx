@@ -2,7 +2,7 @@ import { createSignal, createEffect, onMount, onCleanup, For } from "solid-js";
 import { createStore } from "solid-js/store";
 import { ArrowUp, ArrowDown, Activity, Cpu, Zap, Shield, Globe, GripVertical } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
-import { useClashWs } from "@/services/clash-ws";
+import { useClashWs, type WsState } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
 import AnimatedCounter from "@/components/ui/AnimatedCounter";
 import ripple from "@/components/ui/RippleEffect";
@@ -43,6 +43,8 @@ export default function Dashboard() {
   const [memory, setMemory] = createSignal(0);
   const [mode, setMode] = createSignal("rule");
   const [trafficHistory, setTrafficHistory] = createSignal<{ up: number; down: number }[]>([]);
+  const [memoryHistory, setMemoryHistory] = createSignal<number[]>([]);
+  const [wsState, setWsState] = createSignal<WsState>("disconnected");
 
   // 拖拽状态
   const [cards, setCards] = createStore<{ order: CardId[] }>({ order: loadLayout() });
@@ -50,27 +52,46 @@ export default function Dashboard() {
   const [dragOverIndex, setDragOverIndex] = createSignal<number | null>(null);
 
   let canvasRef: HTMLCanvasElement | undefined;
+  let memoryCanvasRef: HTMLCanvasElement | undefined;
   let animFrame: number;
 
   onMount(async () => {
     if (clash.config()) setMode(clash.config()?.mode || "rule");
     connectTrafficWs();
-    fetchMemory();
-    const memInterval = setInterval(fetchMemory, 10000);
+    connectMemoryWs();
+
+    // 监听 WS 状态变化
+    const unsub = wsManager.onStateChange(() => {
+      setWsState(wsManager.trafficState);
+    });
+
     onCleanup(() => {
-      clearInterval(memInterval);
+      unsub();
       wsManager.disconnectTraffic();
     });
   });
 
-  const fetchMemory = async () => {
-    try {
-      const res = await fetch(`${clash.baseUrl()}/memory`, { headers: clash.headers() });
-      if (res.ok) {
-        const d = await res.json();
-        setMemory(d.inuse || 0);
-      }
-    } catch (e) { console.error(e) }
+  const connectMemoryWs = () => {
+    // 通过 traffic WS 获取内存数据（Hades 在 traffic 消息中不带内存，需要单独轮询）
+    // 但降低频率到 15 秒
+    const fetchMemory = async () => {
+      try {
+        const res = await fetch(`${clash.baseUrl()}/memory`, { headers: clash.headers() });
+        if (res.ok) {
+          const d = await res.json();
+          const mem = d.inuse || 0;
+          setMemory(mem);
+          setMemoryHistory((prev) => {
+            const next = [...prev, mem];
+            return next.length > 180 ? next.slice(-180) : next;
+          });
+        }
+      } catch (e) { console.error(e) }
+    };
+
+    fetchMemory();
+    const memInterval = setInterval(fetchMemory, 15000);
+    onCleanup(() => clearInterval(memInterval));
   };
 
   const connectTrafficWs = () => {
@@ -257,6 +278,29 @@ export default function Dashboard() {
         <div class="text-2xl font-bold tracking-tight">
           <AnimatedCounter value={memory()} format={formatBytes} />
         </div>
+        <div class="mt-2 h-8">
+          <svg class="w-full h-full" viewBox="0 0 100 20" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgb(168,85,247)" stop-opacity="0.3" />
+                <stop offset="100%" stop-color="rgb(168,85,247)" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            {(() => {
+              const hist = memoryHistory();
+              if (hist.length < 2) return null;
+              const max = Math.max(1, ...hist);
+              const points = 30;
+              const slice = hist.slice(-points);
+              const line = slice.map((v, i) => `${(i / (points - 1)) * 100},${20 - (v / max) * 18}`).join(" ");
+              const area = `0,20 ${line} 100,20`;
+              return <>
+                <polygon points={area} fill="url(#memGrad)" />
+                <polyline points={line} fill="none" stroke="rgb(168,85,247)" stroke-width="1.5" />
+              </>;
+            })()}
+          </svg>
+        </div>
         <div class="text-xs text-base-content/40 mt-1">Hades</div>
       </div>
     ),
@@ -291,11 +335,15 @@ export default function Dashboard() {
         <div class="flex items-center gap-2">
           <span
             class={`badge badge-sm gap-1 ${
-              clash.connected() ? "badge-success" : "badge-error"
+              wsState() === "connected" ? "badge-success" :
+              wsState() === "connecting" ? "badge-warning" :
+              "badge-error"
             }`}
           >
-            <span class={`w-1.5 h-1.5 rounded-full ${clash.connected() ? "animate-subtle-pulse" : ""}`} />
-            {clash.connected() ? "已连接" : "未连接"}
+            <span class={`w-1.5 h-1.5 rounded-full ${wsState() === "connected" ? "animate-subtle-pulse" : ""}`} />
+            {wsState() === "connected" ? "WS 已连接" :
+             wsState() === "connecting" ? "WS 连接中..." :
+             wsState() === "error" ? "WS 错误" : "WS 断开"}
           </span>
         </div>
       </div>

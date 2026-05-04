@@ -9,6 +9,8 @@ type TrafficCallback = (data: TrafficData) => void;
 type LogCallback = (entry: LogEntry) => void;
 type ConnectionsCallback = (data: ConnectionsData) => void;
 
+export type WsState = "connecting" | "connected" | "disconnected" | "error";
+
 export class ClashWebSocketManager {
   private trafficWs: WebSocket | null = null;
   private logsWs: WebSocket | null = null;
@@ -18,9 +20,32 @@ export class ClashWebSocketManager {
   private logsCallback: LogCallback | null = null;
   private connectionsCallback: ConnectionsCallback | null = null;
 
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
+  // 连接状态
+  private _trafficState: WsState = "disconnected";
+  private _logsState: WsState = "disconnected";
+  private _connectionsState: WsState = "disconnected";
+  private stateListeners: Set<() => void> = new Set();
+
+  private reconnectTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private maxReconnectAttempts = 10;
+  private baseDelay = 1000;
+
+  // 状态访问器
+  get trafficState(): WsState { return this._trafficState; }
+  get logsState(): WsState { return this._logsState; }
+  get connectionsState(): WsState { return this._connectionsState; }
+
+  onStateChange(listener: () => void) {
+    this.stateListeners.add(listener);
+    return () => this.stateListeners.delete(listener);
+  }
+
+  private setState(type: "traffic" | "logs" | "connections", state: WsState) {
+    const key = `_${type}State` as `_${typeof type}State`;
+    if (this[key] === state) return;
+    (this as any)[key] = state;
+    this.stateListeners.forEach((fn) => fn());
+  }
 
   private buildWsUrl(path: string, params?: string): string {
     const store = useClashStore();
@@ -47,7 +72,8 @@ export class ClashWebSocketManager {
         try {
           this.trafficCallback?.(JSON.parse(data));
         } catch { /* ignore parse errors */ }
-      }
+      },
+      "traffic",
     );
   }
 
@@ -61,7 +87,8 @@ export class ClashWebSocketManager {
         try {
           this.logsCallback?.(JSON.parse(data));
         } catch { /* ignore parse errors */ }
-      }
+      },
+      "logs",
     );
   }
 
@@ -75,20 +102,32 @@ export class ClashWebSocketManager {
         try {
           this.connectionsCallback?.(JSON.parse(data));
         } catch { /* ignore parse errors */ }
-      }
+      },
+      "connections",
     );
   }
 
   private createConnection(
     path: string,
     setWs: (ws: WebSocket) => void,
-    onMessage: (data: string) => void
+    onMessage: (data: string) => void,
+    type: "traffic" | "logs" | "connections",
   ) {
     const url = this.buildWsUrl(path);
+    const reconnectKey = `reconnect_${type}`;
+
+    // 清除旧的重连定时器
+    const existingTimer = this.reconnectTimers.get(reconnectKey);
+    if (existingTimer) clearTimeout(existingTimer);
 
     try {
+      this.setState(type, "connecting");
       const ws = new WebSocket(url);
       setWs(ws);
+
+      ws.onopen = () => {
+        this.setState(type, "connected");
+      };
 
       ws.onmessage = (event) => {
         if (typeof event.data === "string") {
@@ -97,13 +136,16 @@ export class ClashWebSocketManager {
       };
 
       ws.onclose = () => {
-        this.handleReconnect(path, setWs, onMessage);
+        this.setState(type, "disconnected");
+        this.handleReconnect(path, setWs, onMessage, type, 0);
       };
 
       ws.onerror = () => {
+        this.setState(type, "error");
         ws.close();
       };
     } catch (e) {
+      this.setState(type, "error");
       console.error("WebSocket connection failed:", e);
     }
   }
@@ -111,43 +153,72 @@ export class ClashWebSocketManager {
   private handleReconnect(
     path: string,
     setWs: (ws: WebSocket) => void,
-    onMessage: (data: string) => void
+    onMessage: (data: string) => void,
+    type: "traffic" | "logs" | "connections",
+    attempt: number,
   ) {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
+    if (attempt >= this.maxReconnectAttempts) {
+      console.warn(`WebSocket ${type}: 达到最大重连次数 ${this.maxReconnectAttempts}`);
+      return;
+    }
 
-    this.reconnectAttempts++;
-    // Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 30s)
-    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
+    // 指数退避: 1s, 2s, 4s, 8s, 16s, 30s (封顶)
+    const delay = Math.min(this.baseDelay * Math.pow(2, attempt), 30000);
+    const reconnectKey = `reconnect_${type}`;
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      this.reconnectTimers.delete(reconnectKey);
       if (useClashStore().connected()) {
-        this.createConnection(path, setWs, onMessage);
+        this.createConnection(path, setWs, onMessage, type);
       }
     }, delay);
+
+    this.reconnectTimers.set(reconnectKey, timer);
   }
 
   disconnectAll() {
+    // 清除所有重连定时器
+    this.reconnectTimers.forEach((timer) => clearTimeout(timer));
+    this.reconnectTimers.clear();
+
     this.trafficWs?.close();
     this.logsWs?.close();
     this.connectionsWs?.close();
     this.trafficWs = null;
     this.logsWs = null;
     this.connectionsWs = null;
+
+    this._trafficState = "disconnected";
+    this._logsState = "disconnected";
+    this._connectionsState = "disconnected";
+    this.stateListeners.forEach((fn) => fn());
   }
 
   disconnectTraffic() {
+    const timer = this.reconnectTimers.get("reconnect_traffic");
+    if (timer) { clearTimeout(timer); this.reconnectTimers.delete("reconnect_traffic"); }
     this.trafficWs?.close();
     this.trafficWs = null;
+    this._trafficState = "disconnected";
+    this.stateListeners.forEach((fn) => fn());
   }
 
   disconnectLogs() {
+    const timer = this.reconnectTimers.get("reconnect_logs");
+    if (timer) { clearTimeout(timer); this.reconnectTimers.delete("reconnect_logs"); }
     this.logsWs?.close();
     this.logsWs = null;
+    this._logsState = "disconnected";
+    this.stateListeners.forEach((fn) => fn());
   }
 
   disconnectConnections() {
+    const timer = this.reconnectTimers.get("reconnect_connections");
+    if (timer) { clearTimeout(timer); this.reconnectTimers.delete("reconnect_connections"); }
     this.connectionsWs?.close();
     this.connectionsWs = null;
+    this._connectionsState = "disconnected";
+    this.stateListeners.forEach((fn) => fn());
   }
 }
 
