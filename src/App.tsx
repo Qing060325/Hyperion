@@ -28,14 +28,10 @@ export default function App() {
   const settingsStore = useSettingsStore();
 
   onMount(() => {
-    // Load settings from localStorage
     settingsStore.loadSettings();
-    
-    // Connect to Clash if configured
     if (!clash.connected()) clash.connect();
   });
 
-  // Mark first run as complete after initial load
   createEffect(() => {
     if (settingsStore.settings().first_run) {
       settingsStore.updateSettings({ first_run: false });
@@ -50,7 +46,6 @@ export default function App() {
 
   return (
     <>
-      {/* Show welcome wizard for first-time users */}
       <Show when={!settingsStore.settings().wizard_completed}>
         <WelcomeWizard onComplete={handleWizardComplete} />
       </Show>
@@ -67,13 +62,15 @@ export default function App() {
         <Route path="/subscriptions" component={Subscriptions} />
         <Route path="/settings" component={Settings} />
         <Route path="/profiles" component={Profiles} />
+        {/* New routes for the upgraded nav */}
+        <Route path="/nodes" component={Proxies} />
+        <Route path="/traffic" component={Connections} />
       </Router>
     </>
   );
 }
 
 function Root(props: ParentProps) {
-  // Initialize hotkey service inside Router context (has access to navigate)
   onMount(() => {
     const clash = useClashStore();
     import("./services/hotkeys").then(({ hotkeyService }) => {

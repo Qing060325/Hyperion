@@ -893,32 +893,114 @@ body {
   animation: scalePop 0.3s var(--ease-spring);
 }
 
+/* ==========================================
+   Scenic Backdrop — Dynamic Background System
+   ========================================== */
+
 .scenic-layer {
   position: fixed;
   inset: 0;
   z-index: 0;
   opacity: 0;
-  transition: opacity 600ms ease;
+  transition: opacity 800ms ease;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .scenic-layer.scenic-enabled { opacity: 1; }
 
+/* Ken Burns animation for scenic images */
+@keyframes kenBurns {
+  0% {
+    transform: var(--kb-from, scale(1));
+  }
+  100% {
+    transform: var(--kb-to, scale(1.12));
+  }
+}
+
 .scenic-image {
   position: absolute;
-  inset: 0;
+  inset: -5%;
+  width: 110%;
+  height: 110%;
   background-size: cover;
   background-position: center;
-  filter: saturate(1.05) contrast(1.02);
-  transition: background-image 1200ms ease-in-out;
+  filter: saturate(1.08) contrast(1.03) brightness(1.02);
+  transition: opacity 1800ms ease-in-out;
+  will-change: transform, opacity;
+}
+
+.scenic-image.scenic-kb {
+  animation: kenBurns 50s ease-in-out infinite alternate;
 }
 
 .scenic-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, rgba(238,242,255,0.72), rgba(219,234,254,0.62) 45%, rgba(255,255,255,0.45));
+  background: linear-gradient(
+    135deg,
+    rgba(238, 242, 255, 0.75) 0%,
+    rgba(219, 234, 254, 0.65) 30%,
+    rgba(255, 255, 255, 0.50) 60%,
+    rgba(248, 250, 252, 0.55) 100%
+  );
 }
 
 [data-theme="dark"] .scenic-overlay {
-  background: linear-gradient(120deg, rgba(15,23,42,0.72), rgba(30,41,59,0.62) 50%, rgba(17,24,39,0.52));
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.78) 0%,
+    rgba(30, 41, 59, 0.68) 30%,
+    rgba(17, 24, 39, 0.55) 60%,
+    rgba(23, 37, 84, 0.60) 100%
+  );
+}
+
+/* Scenic region badge */
+.scenic-region-badge {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 1;
+  animation: fadeInUp 0.6s var(--ease-spring) backwards;
+}
+
+[data-theme="dark"] .scenic-region-badge {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.scenic-region-flag {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.scenic-region-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-base-content);
+  opacity: 0.8;
+  letter-spacing: 0.02em;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
