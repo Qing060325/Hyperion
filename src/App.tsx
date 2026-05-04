@@ -7,6 +7,7 @@ import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import SakuraCanvas from "./components/sakura/SakuraCanvas";
+import LandscapeBackground from "./components/layout/LandscapeBackground";
 import PageTransition from "./components/ui/PageTransition";
 import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
@@ -86,7 +87,8 @@ function Root(props: ParentProps) {
   });
 
   return (
-    <div class="app-layout bg-base-200 noise-bg">
+    <div class="app-layout bg-base-200 noise-bg" style={{ position: "relative", overflow: "hidden" }}>
+      <LandscapeBackground />
       <SakuraCanvas />
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>

@@ -171,6 +171,65 @@ export default function Settings() {
           </div>
         </div>
 
+
+        <div class="divide-y divide-base-200/50">
+          <SettingRow label="风景模式" desc="根据偏好展示风景背景图层，关闭时平滑回退到纯色/默认主题背景">
+            <label class="toggle toggle-sm toggle-primary">
+              <input
+                type="checkbox"
+                checked={settingsStore.settings().landscape_mode}
+                onChange={() => settingsStore.updateSettings({ landscape_mode: !settingsStore.settings().landscape_mode })}
+              />
+            </label>
+          </SettingRow>
+
+          <Show when={settingsStore.settings().landscape_mode}>
+            <SettingRow label="图片来源">
+              <select
+                class="select select-sm select-bordered rounded-xl w-40"
+                value={settingsStore.settings().landscape_image_source}
+                onChange={(e) => settingsStore.updateSettings({ landscape_image_source: e.currentTarget.value as any })}
+              >
+                <option value="local">仅本地</option>
+                <option value="local_cdn">本地+CDN</option>
+                <option value="third_party">允许第三方</option>
+              </select>
+            </SettingRow>
+
+            <SettingRow label="网络策略">
+              <select
+                class="select select-sm select-bordered rounded-xl w-56"
+                value={settingsStore.settings().landscape_network_policy}
+                onChange={(e) => settingsStore.updateSettings({ landscape_network_policy: e.currentTarget.value as any })}
+              >
+                <option value="wifi_hd_cellular_degrade">仅 Wi‑Fi 下载高清图、蜂窝网络降级</option>
+              </select>
+            </SettingRow>
+
+            <SettingRow label="匹配粒度">
+              <select
+                class="select select-sm select-bordered rounded-xl w-40"
+                value={settingsStore.settings().landscape_match_granularity}
+                onChange={(e) => settingsStore.updateSettings({ landscape_match_granularity: e.currentTarget.value as any })}
+              >
+                <option value="country">国家级（默认）</option>
+                <option value="city">城市级（可选）</option>
+              </select>
+            </SettingRow>
+
+            <SettingRow label="失败回退">
+              <select
+                class="select select-sm select-bordered rounded-xl w-40"
+                value={settingsStore.settings().landscape_fallback}
+                onChange={(e) => settingsStore.updateSettings({ landscape_fallback: e.currentTarget.value as any })}
+              >
+                <option value="default_image">固定默认图</option>
+              </select>
+            </SettingRow>
+          </Show>
+        </div>
+
+
         {/* Sakura Skin Toggle */}
         <div class="divide-y divide-base-200/50">
           <SettingRow label="樱花特效" desc="开启飘落樱花粒子动画">

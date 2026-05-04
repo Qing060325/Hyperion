@@ -250,6 +250,11 @@ export interface HyperionSettings {
   auto_detect_clash: boolean;
   // v0.4.0 新增
   sakura_skin: boolean;
+  landscape_mode: boolean;
+  landscape_image_source: "local" | "local_cdn" | "third_party";
+  landscape_network_policy: "wifi_hd_cellular_degrade";
+  landscape_match_granularity: "country" | "city";
+  landscape_fallback: "default_image";
 }
 
 export const DEFAULT_SETTINGS: HyperionSettings = {
@@ -267,6 +272,11 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   auto_detect_clash: true,
   // v0.4.0 新增
   sakura_skin: false,
+  landscape_mode: false,
+  landscape_image_source: "local",
+  landscape_network_policy: "wifi_hd_cellular_degrade",
+  landscape_match_granularity: "country",
+  landscape_fallback: "default_image",
 };
 
 // ==========================================
