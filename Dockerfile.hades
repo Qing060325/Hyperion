@@ -6,7 +6,7 @@ LABEL description="Hades - 高性能代理内核"
 RUN apk add --no-cache ca-certificates wget
 
 # 从 GitHub Releases 下载 Hades
-ARG HADES_VERSION=v0.5.0
+ARG HADES_VERSION=v1.0.1
 ARG TARGETARCH=amd64
 RUN wget -qO /usr/local/bin/hades \
       "https://github.com/Qing060325/Hades/releases/download/${HADES_VERSION}/hades-linux-${TARGETARCH}" \
