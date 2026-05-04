@@ -1,4 +1,4 @@
-import { onMount, Show, createEffect, type ParentProps } from "solid-js";
+import { onMount, Show, createEffect, createSignal, type ParentProps } from "solid-js";
 import { Router, Route, useNavigate } from "@solidjs/router";
 import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
@@ -8,6 +8,7 @@ import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import SakuraCanvas from "./components/sakura/SakuraCanvas";
 import PageTransition from "./components/ui/PageTransition";
+import { sampleImageLuminance } from "@/utils/imageLuminance";
 import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
 import Proxies from "./pages/Proxies";
@@ -72,6 +73,25 @@ export default function App() {
 }
 
 function Root(props: ParentProps) {
+
+  const [landscapeStyle, setLandscapeStyle] = createSignal<Record<string, string>>({});
+
+  const updateLandscapeTokens = (img: HTMLImageElement) => {
+    const lum = sampleImageLuminance(img);
+    const contrastBoost = Math.max(0, lum.avg - 0.55);
+    const dynamicOverlay = Math.min(0.6, Math.max(0.18, 0.22 + contrastBoost * 0.8));
+    const cardAlpha = Math.min(0.92, Math.max(0.7, 0.9 - lum.avg * 0.18));
+    const gridAlpha = Math.min(0.3, Math.max(0.08, 0.24 - lum.avg * 0.16));
+    const textTone = lum.avg > 0.58 ? "oklch(15% 0.02 265)" : "oklch(96% 0.01 265)";
+
+    setLandscapeStyle({
+      "--landscape-overlay-opacity": dynamicOverlay.toFixed(3),
+      "--landscape-card-opacity": cardAlpha.toFixed(3),
+      "--landscape-grid-opacity": gridAlpha.toFixed(3),
+      "--landscape-text-tone": textTone,
+    });
+  };
+
   // Initialize hotkey service inside Router context (has access to navigate)
   onMount(() => {
     const clash = useClashStore();
@@ -86,7 +106,15 @@ function Root(props: ParentProps) {
   });
 
   return (
-    <div class="app-layout bg-base-200 noise-bg">
+    <div class="app-layout bg-base-200 noise-bg background-shell" style={landscapeStyle()}>
+      <img
+        src="/screenshots/sakura-v2-dark.png"
+        alt=""
+        class="landscape-bg-image"
+        onLoad={(e) => updateLandscapeTokens(e.currentTarget)}
+      />
+      <div class="landscape-overlay-base" />
+      <div class="landscape-overlay-dynamic" />
       <SakuraCanvas />
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>

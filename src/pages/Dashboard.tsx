@@ -132,9 +132,10 @@ export default function Dashboard() {
       const maxVal = Math.max(1, ...history.map((h) => Math.max(h.up, h.down)));
       const points = 120;
 
-      ctx.strokeStyle = getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-base-300")
-        .trim() || "#e8e8ed";
+      const rootStyles = getComputedStyle(document.documentElement);
+      const gridOpacity = Number.parseFloat(rootStyles.getPropertyValue("--landscape-grid-opacity")) || 0.16;
+      const baseGrid = rootStyles.getPropertyValue("--color-base-300").trim() || "#e8e8ed";
+      ctx.strokeStyle = `color-mix(in oklab, ${baseGrid} ${Math.round(gridOpacity * 100)}%, transparent)`;
       ctx.lineWidth = 0.5;
       for (let i = 0; i <= 4; i++) {
         const y = (ch / 4) * i;
@@ -329,7 +330,7 @@ export default function Dashboard() {
       {/* Header */}
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">仪表盘</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-adaptive">仪表盘</h1>
           <p class="text-sm text-base-content/50 mt-0.5">实时监控代理流量与系统状态 · 拖拽卡片可调整布局</p>
         </div>
         <div class="flex items-center gap-2">
