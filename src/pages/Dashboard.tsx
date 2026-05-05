@@ -9,6 +9,8 @@ import { useClashWs, type WsState } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
 import AnimatedCounter from "@/components/ui/AnimatedCounter";
 import Header from "@/components/layout/Header";
+import { activeNode } from "@/stores/activeNode";
+import { detectRegion, SCENES } from "@/components/scenic/ScenicBackdrop";
 
 // Types
 interface NodeInfo {
@@ -376,6 +378,12 @@ export default function Dashboard() {
     );
   };
 
+  // 当前连接地区信息（自动根据 VPN 节点识别）
+  const currentRegion = createMemo(() => {
+    const code = detectRegion(activeNode());
+    return SCENES[code] || SCENES.DEFAULT;
+  });
+
   return (
     <div class="animate-page-in-enhanced space-y-5">
       {/* Header */}
@@ -394,7 +402,7 @@ export default function Dashboard() {
               style={{ background: "#F0F9F6" }}
             >
               <CheckCircle size={16} style={{ color: "#00C48C" }} />
-              <span style={{ "font-size": "14px", color: "#333" }}>已连接：日本节点 02</span>
+              <span style={{ "font-size": "14px", color: "#333" }}>已连接：{activeNode() || "未连接"}</span>
             </div>
           </div>
         </div>
@@ -403,7 +411,7 @@ export default function Dashboard() {
         <div class="card bg-base-100 p-5 flex-shrink-0" style={{ "min-width": "200px" }}>
           <div style={{ "font-size": "12px", color: "#999" }}>🌍 当前地区</div>
           <div style={{ "font-size": "14px", "font-weight": "500", color: "#333", "margin-top": "4px" }}>
-            🇯🇵 日本·东京
+            {currentRegion().flag} {currentRegion().label}
           </div>
           <div style={{ "font-size": "24px", "font-weight": "700", color: "#333", "margin-top": "8px" }}>
             {currentTime()}

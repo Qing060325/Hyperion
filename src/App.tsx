@@ -1,8 +1,9 @@
-import { onMount, Show, createEffect, createSignal, onCleanup, type ParentProps } from "solid-js";
+import { onMount, Show, createEffect, onCleanup, type ParentProps } from "solid-js";
 import { Router, Route, useNavigate } from "@solidjs/router";
 import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
 import { useSettingsStore } from "./stores/settings";
+import { activeNode, setActiveNode } from "./stores/activeNode";
 import Sidebar from "./components/layout/Sidebar";
 import MobileNav from "./components/layout/MobileNav";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
@@ -84,7 +85,6 @@ function Root(props: ParentProps) {
   });
 
   const clash = useClashStore();
-  const [activeNode, setActiveNode] = createSignal("");
 
   onMount(() => {
     const fetchActiveNode = async () => {
@@ -106,7 +106,7 @@ function Root(props: ParentProps) {
 
   return (
     <div class="app-layout bg-base-200 noise-bg">
-      <ScenicBackdrop nodeName={activeNode()} />
+      <ScenicBackdrop />
       <SakuraCanvas />
       <Sidebar />
       <main class="main-content" style={{ position: "relative", "z-index": 1 }}>

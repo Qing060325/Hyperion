@@ -8,6 +8,8 @@ import {
 import { useClashStore } from "@/stores/clash";
 import { useThemeStore } from "@/stores/theme";
 import { useSettingsStore } from "@/stores/settings";
+import { activeNode } from "@/stores/activeNode";
+import { detectRegion, SCENES } from "@/components/scenic/ScenicBackdrop";
 
 const navItems = [
   { path: "/", label: "仪表盘", icon: LayoutDashboard },
@@ -43,6 +45,12 @@ export default function Sidebar() {
   const themeStore = useThemeStore();
   const settingsStore = useSettingsStore();
   const [selectedThumb, setSelectedThumb] = createSignal("fuji");
+
+  // 从当前活动节点检测地区信息
+  const currentRegion = createMemo(() => {
+    const code = detectRegion(activeNode());
+    return SCENES[code] || SCENES.DEFAULT;
+  });
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -230,7 +238,7 @@ export default function Sidebar() {
             {/* Current Region */}
             <div class="flex items-center gap-1.5 mt-2" style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)" }}>
               <Globe size={12} />
-              <span>当前地区：日本·东京</span>
+              <span>当前地区：{currentRegion().flag} {currentRegion().label}</span>
             </div>
 
             {/* Opacity Slider */}
