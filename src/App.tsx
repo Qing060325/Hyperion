@@ -4,13 +4,8 @@ import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
 import { useSettingsStore } from "./stores/settings";
 import { activeNode, setActiveNode } from "./stores/activeNode";
-import Sidebar from "./components/layout/Sidebar";
-import MobileNav from "./components/layout/MobileNav";
+import MainLayout from "./components/layout/MainLayout";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
-import SakuraCanvas from "./components/sakura/SakuraCanvas";
-import ScenicBackdrop from "./components/scenic/ScenicBackdrop";
-import PageTransition from "./components/ui/PageTransition";
-import "./components/ui/RippleEffect";
 import Dashboard from "./pages/Dashboard";
 import Proxies from "./pages/Proxies";
 import Connections from "./pages/Connections";
@@ -51,7 +46,7 @@ export default function App() {
         <WelcomeWizard onComplete={handleWizardComplete} />
       </Show>
 
-      <Router root={Root}>
+      <Router root={LayoutWrapper}>
         <Route path="/" component={Dashboard} />
         <Route path="/proxies" component={Proxies} />
         <Route path="/connections" component={Connections} />
@@ -63,7 +58,6 @@ export default function App() {
         <Route path="/subscriptions" component={Subscriptions} />
         <Route path="/settings" component={Settings} />
         <Route path="/profiles" component={Profiles} />
-        {/* New routes for the upgraded nav */}
         <Route path="/nodes" component={Proxies} />
         <Route path="/traffic" component={Connections} />
       </Router>
@@ -71,7 +65,7 @@ export default function App() {
   );
 }
 
-function Root(props: ParentProps) {
+function LayoutWrapper(props: ParentProps) {
   onMount(() => {
     const clash = useClashStore();
     import("./services/hotkeys").then(({ hotkeyService }) => {
@@ -104,17 +98,5 @@ function Root(props: ParentProps) {
     onCleanup(() => clearInterval(timer));
   });
 
-  return (
-    <div class="app-layout bg-base-200 noise-bg">
-      <ScenicBackdrop />
-      <SakuraCanvas />
-      <Sidebar />
-      <main class="main-content" style={{ position: "relative", "z-index": 1 }}>
-        <div class="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
-          <PageTransition>{props.children}</PageTransition>
-        </div>
-      </main>
-      <MobileNav />
-    </div>
-  );
+  return <MainLayout>{props.children}</MainLayout>;
 }
