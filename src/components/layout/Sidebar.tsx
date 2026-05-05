@@ -8,7 +8,7 @@ import {
 import { useClashStore } from "@/stores/clash";
 import { useThemeStore } from "@/stores/theme";
 import { useSettingsStore } from "@/stores/settings";
-import { activeNode } from "@/stores/activeNode";
+import { useSceneStore } from "@/stores/scene";
 import { detectRegion, SCENES } from "@/components/scenic/ScenicBackdrop";
 
 const navItems = [
@@ -44,13 +44,14 @@ export default function Sidebar() {
   const clash = useClashStore();
   const themeStore = useThemeStore();
   const settingsStore = useSettingsStore();
+  const sceneStore = useSceneStore();
   const [selectedThumb, setSelectedThumb] = createSignal("fuji");
 
-  // 从当前活动节点检测地区信息
-  const currentRegion = createMemo(() => {
-    const code = detectRegion(activeNode());
-    return SCENES[code] || SCENES.DEFAULT;
-  });
+  // 从 scene store 获取场景信息
+  const currentRegion = createMemo(() => ({
+    flag: sceneStore.flag(),
+    label: sceneStore.regionLabel(),
+  }));
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -211,7 +212,7 @@ export default function Sidebar() {
           <div class="mx-1 mt-2 rounded-xl p-3" style={{ background: "rgba(0,0,0,0.02)", border: "1px solid var(--color-hyperion-border)" }}>
             {/* Header with toggle */}
             <div class="flex items-center justify-between mb-2">
-              <div style={{ "font-size": "14px", "font-weight": "500", color: "var(--color-hyperion-text-secondary)" }}>🌄 风景模式</div>
+              <div style={{ "font-size": "14px", "font-weight": "500", color: "var(--color-hyperion-text-secondary)" }}>🌍 场景模式</div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -232,13 +233,15 @@ export default function Sidebar() {
 
             {/* Description */}
             <div style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)", "line-height": "18px" }}>
-              根据 VPN 连接的地区自动切换背景
+              跟随 VPN 节点自动切换场景 · 风景 + 色调 + 数据联动
             </div>
 
-            {/* Current Region */}
+            {/* Current Scene Info */}
             <div class="flex items-center gap-1.5 mt-2" style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)" }}>
               <Globe size={12} />
-              <span>当前地区：{currentRegion().flag} {currentRegion().label}</span>
+              <span>{sceneStore.flag()} {sceneStore.regionLabel()}</span>
+              <span style={{ color: sceneStore.themeColor(), "font-weight": "500" }}>·</span>
+              <span>{sceneStore.isNight() ? "🌙 夜间" : sceneStore.isTwilight() ? "🌅 晨昏" : "☀️ 白天"}</span>
             </div>
 
             {/* Opacity Slider */}

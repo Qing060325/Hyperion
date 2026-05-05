@@ -1,7 +1,8 @@
 import { createMemo } from "solid-js";
-import { CheckCircle } from "lucide-solid";
+import { CheckCircle, Globe, Clock, Cloud } from "lucide-solid";
 import { activeNode } from "@/stores/activeNode";
-import { detectRegion, SCENES } from "@/components/scenic/ScenicBackdrop";
+import { useSceneStore } from "@/stores/scene";
+import { useClashStore } from "@/stores/clash";
 
 interface HeroBannerProps {
   greeting: string;
@@ -10,46 +11,89 @@ interface HeroBannerProps {
 }
 
 export default function HeroBanner(props: HeroBannerProps) {
-  const currentRegion = createMemo(() => {
-    const code = detectRegion(activeNode());
-    return SCENES[code] || SCENES.DEFAULT;
+  const scene = useSceneStore();
+  const clash = useClashStore();
+
+  /** 场景切换时的过渡样式 */
+  const heroStyle = createMemo(() => ({
+    "--hero-accent": scene.themeColor(),
+    transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+  }));
+
+  /** 连接状态 */
+  const isConnected = createMemo(() => clash.connected());
+
+  /** 延迟（从 clash config 推断） */
+  const nodeDelay = createMemo(() => {
+    // mock — 实际应从 proxy API 获取
+    return "28ms";
   });
 
   return (
-    <div class="flex items-start justify-between gap-4 flex-wrap">
-      {/* Left: Greeting */}
-      <div>
-        <h1 style={{ "font-size": "20px", "font-weight": "600", color: "#333" }}>
-          {props.greeting}
-        </h1>
-        <p style={{ "font-size": "14px", color: "#666", "margin-top": "4px" }}>
-          一切运行正常，祝你有美好的一天！
-        </p>
-        <div class="flex items-center gap-2 mt-3">
-          <div class="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: "#F0F9F6" }}>
-            <CheckCircle size={16} style={{ color: "#00C48C" }} />
-            <span style={{ "font-size": "14px", color: "#333" }}>
-              已连接：{activeNode() || "未连接"}
+    <div
+      class={`hero-banner scene-aware ${scene.transitioning() ? "hero-transitioning" : ""}`}
+      style={heroStyle()}
+    >
+      {/* 左侧：问候 + 场景信息 */}
+      <div class="hero-content">
+        {/* 问候语 */}
+        <h1 class="hero-greeting">{props.greeting}</h1>
+
+        {/* 场景状态行 */}
+        <div class="hero-scene-info">
+          {/* 连接状态 */}
+          <div class="hero-status-pill" style={{
+            background: isConnected() ? "#F0F9F6" : "#FFF0F0",
+          }}>
+            <CheckCircle size={14} style={{ color: isConnected() ? "#00C48C" : "#FF4757" }} />
+            <span style={{ color: isConnected() ? "#00C48C" : "#FF4757" }}>
+              {isConnected() ? "已连接" : "未连接"}
             </span>
           </div>
+
+          {/* 当前节点 + 地区 */}
+          <div class="hero-node-pill">
+            <span class="hero-node-flag">{scene.flag()}</span>
+            <span>{activeNode() || "未选择节点"}</span>
+            <span class="hero-node-delay">{nodeDelay()}</span>
+          </div>
         </div>
+
+        {/* 场景描述 */}
+        <p class="hero-subtitle">
+          {scene.regionLabel()} · {scene.isNight() ? "夜间模式已启用" : "一切运行正常"}
+        </p>
       </div>
 
-      {/* Right: Region / Weather card */}
-      <div class="card bg-base-100 p-5 flex-shrink-0" style={{ "min-width": "200px" }}>
-        <div style={{ "font-size": "12px", color: "#999" }}>🌍 当前地区</div>
-        <div style={{ "font-size": "14px", "font-weight": "500", color: "#333", "margin-top": "4px" }}>
-          {currentRegion().flag} {currentRegion().label}
+      {/* 右侧：时间 + 场景卡片 */}
+      <div class="hero-scene-card">
+        {/* 地区 */}
+        <div class="hero-card-row">
+          <Globe size={13} style={{ color: "#999" }} />
+          <span class="hero-card-label">当前地区</span>
         </div>
-        <div style={{ "font-size": "24px", "font-weight": "700", color: "#333", "margin-top": "8px" }}>
-          {props.currentTime}
+        <div class="hero-card-region">
+          <span class="hero-card-flag">{scene.flag()}</span>
+          <span>{scene.regionLabel()}</span>
         </div>
-        <div style={{ "font-size": "12px", color: "#999" }}>{props.currentDate}</div>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span style={{ "font-size": "16px" }}>☀️</span>
-          <span style={{ "font-size": "14px", color: "#333" }}>23°C</span>
-          <span style={{ "font-size": "12px", color: "#999" }}>晴朗</span>
+
+        {/* 时间 */}
+        <div class="hero-card-time">{props.currentTime}</div>
+        <div class="hero-card-date">{props.currentDate}</div>
+
+        {/* 时段指示 */}
+        <div class="hero-card-row" style={{ "margin-top": "8px" }}>
+          <Clock size={13} style={{ color: scene.themeColor() }} />
+          <span style={{ color: "#666" }}>
+            {scene.isNight() ? "🌙 夜间" : scene.isTwilight() ? "🌅 晨昏" : "☀️ 白天"}
+          </span>
         </div>
+
+        {/* 主题色条 */}
+        <div
+          class="hero-accent-bar"
+          style={{ background: `linear-gradient(90deg, ${scene.themeColor()}, transparent)` }}
+        />
       </div>
     </div>
   );

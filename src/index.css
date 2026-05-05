@@ -587,3 +587,272 @@ footer {
   position: relative;
   z-index: 1;
 }
+
+/* ==========================================
+   Scene Engine — 场景感知系统
+   ========================================== */
+
+/* Scene Overlay */
+.scene-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease, background 1.2s ease;
+}
+
+.scene-overlay-transitioning {
+  opacity: 0.6;
+}
+
+.scene-night-filter {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: background 2s ease;
+}
+
+/* Scene Badge */
+.scene-badge {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  min-width: 120px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scene-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+}
+
+.scene-badge-time {
+  font-size: 11px;
+  color: #86868b;
+  margin-top: 4px;
+}
+
+.scene-badge-flag {
+  font-size: 16px;
+}
+
+.scene-badge-region {
+  font-weight: 500;
+}
+
+.scene-badge-accent {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 8px;
+  opacity: 0.7;
+  transition: background 0.6s ease;
+}
+
+/* Hero Banner — Scene-aware */
+.hero-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hero-banner.hero-transitioning {
+  opacity: 0.85;
+  transform: scale(0.995);
+}
+
+.hero-content {
+  flex: 1;
+  min-width: 200px;
+}
+
+.hero-greeting {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  transition: color 0.4s ease;
+}
+
+.hero-scene-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  transition: background 0.3s ease;
+}
+
+.hero-node-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+  color: #333;
+  transition: all 0.4s ease;
+}
+
+.hero-node-flag {
+  font-size: 15px;
+}
+
+.hero-node-delay {
+  font-size: 11px;
+  color: #00C48C;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.hero-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-top: 8px;
+  transition: color 0.4s ease;
+}
+
+/* Hero Scene Card (right side) */
+.hero-scene-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 16px 20px;
+  min-width: 180px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-card-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #999;
+}
+
+.hero-card-label {
+  font-size: 12px;
+}
+
+.hero-card-region {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-top: 4px;
+}
+
+.hero-card-flag {
+  font-size: 18px;
+}
+
+.hero-card-time {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin-top: 8px;
+}
+
+.hero-card-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.hero-accent-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transition: background 0.8s ease;
+}
+
+/* Scene transition keyframes */
+@keyframes scene-fade-in {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes scene-badge-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scene-badge {
+  animation: scene-badge-enter 0.5s ease-out;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .scene-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.5) 40%,
+    rgba(0, 0, 0, 0.7) 100%
+  ) !important;
+}
+
+[data-theme="dark"] .scene-badge {
+  background: rgba(30, 30, 40, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .scene-badge-row {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .hero-scene-card {
+  background: rgba(30, 30, 40, 0.65);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hero-greeting,
+[data-theme="dark"] .hero-card-region,
+[data-theme="dark"] .hero-card-time {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .hero-subtitle {
+  color: #aaa;
+}
+
+[data-theme="dark"] .hero-node-pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+}
+
+/* Responsive: hide scene badge on small screens */
+@media (max-width: 768px) {
+  .scene-badge {
+    display: none;
+  }
+}
