@@ -200,9 +200,10 @@ export default function Sidebar() {
 
         {/* Scenic Mode Panel */}
         <Show when={!collapsed()}>
-          <div class="mx-1 mt-2 rounded-xl p-3" style={{ background: "rgba(0,0,0,0.02)", border: "1px solid #F0F0F0" }}>
+          <div class="mx-1 mt-2 rounded-xl p-3" style={{ background: "rgba(0,0,0,0.02)", border: "1px solid var(--color-hyperion-border)" }}>
+            {/* Header with toggle */}
             <div class="flex items-center justify-between mb-2">
-              <div style={{ "font-size": "14px", "font-weight": "500", color: "#666" }}>🌄 风景模式</div>
+              <div style={{ "font-size": "14px", "font-weight": "500", color: "var(--color-hyperion-text-secondary)" }}>🌄 风景模式</div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -215,19 +216,76 @@ export default function Sidebar() {
                 <div
                   class="w-8 h-[18px] rounded-full peer peer-checked:after:translate-x-[14px] after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"
                   style={{
-                    background: settingsStore.settings().sakura_skin ? "#534BFF" : "#E0E0E0",
+                    background: settingsStore.settings().sakura_skin ? "var(--color-hyperion-primary)" : "#E0E0E0",
                   }}
                 />
               </label>
             </div>
-            <div style={{ "font-size": "12px", color: "#999", "line-height": "18px" }}>
+
+            {/* Description */}
+            <div style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)", "line-height": "18px" }}>
               根据 VPN 连接的地区自动切换背景
             </div>
-            <div class="flex items-center gap-1.5 mt-2" style={{ "font-size": "12px", color: "#999" }}>
+
+            {/* Current Region */}
+            <div class="flex items-center gap-1.5 mt-2" style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)" }}>
               <Globe size={12} />
               <span>当前地区：日本·东京</span>
             </div>
-            <div style={{ "font-size": "12px", color: "#999", "margin-top": "12px", "margin-bottom": "6px" }}>
+
+            {/* Opacity Slider */}
+            <Show when={settingsStore.settings().sakura_skin}>
+              <div class="mt-4 space-y-3">
+                {/* Opacity Control */}
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span style={{ "font-size": "12px", color: "var(--color-hyperion-text-secondary)" }}>透明度</span>
+                    <span style={{ "font-size": "11px", color: "var(--color-hyperion-text-muted)" }}>
+                      {settingsStore.settings().scenic_opacity}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settingsStore.settings().scenic_opacity}
+                    onInput={(e) => {
+                      const value = parseInt(e.currentTarget.value);
+                      settingsStore.updateSettings({ scenic_opacity: value });
+                      e.currentTarget.style.setProperty('--value-percent', `${value}%`);
+                    }}
+                    class="scenic-slider w-full"
+                    style={{ "--value-percent": `${settingsStore.settings().scenic_opacity}%` }}
+                  />
+                </div>
+
+                {/* Blur Control */}
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span style={{ "font-size": "12px", color: "var(--color-hyperion-text-secondary)" }}>模糊度</span>
+                    <span style={{ "font-size": "11px", color: "var(--color-hyperion-text-muted)" }}>
+                      {settingsStore.settings().scenic_blur}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="20"
+                    value={settingsStore.settings().scenic_blur}
+                    onInput={(e) => {
+                      const value = parseInt(e.currentTarget.value);
+                      settingsStore.updateSettings({ scenic_blur: value });
+                      e.currentTarget.style.setProperty('--value-percent', `${(value / 20) * 100}%`);
+                    }}
+                    class="scenic-slider w-full"
+                    style={{ "--value-percent": `${(settingsStore.settings().scenic_blur / 20) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </Show>
+
+            {/* Background Thumbnails */}
+            <div style={{ "font-size": "12px", color: "var(--color-hyperion-text-muted)", "margin-top": "12px", "margin-bottom": "6px" }}>
               更换背景
             </div>
             <div class="flex gap-2">
@@ -239,7 +297,7 @@ export default function Sidebar() {
                       width: "50px",
                       height: "40px",
                       "border-radius": "4px",
-                      border: selectedThumb() === thumb.id ? "2px solid #534BFF" : "1px solid #F0F0F0",
+                      border: selectedThumb() === thumb.id ? "2px solid var(--color-hyperion-primary)" : "1px solid var(--color-hyperion-border)",
                       opacity: selectedThumb() === thumb.id ? "1" : "0.7",
                     }}
                     onClick={() => setSelectedThumb(thumb.id)}

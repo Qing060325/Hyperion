@@ -491,3 +491,99 @@ body {
 
 /* Ripple */
 .ripple-container { position: relative; overflow: hidden; }
+
+/* ==========================================
+   Scenic Slider — Custom Range Input
+   ========================================== */
+.scenic-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--color-hyperion-primary) 0%,
+    var(--color-hyperion-primary) var(--value-percent, 50%),
+    var(--color-hyperion-border) var(--value-percent, 50%),
+    var(--color-hyperion-border) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.scenic-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--color-hyperion-primary);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease;
+}
+
+.scenic-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.scenic-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--color-hyperion-primary);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Update slider background on value change via JS */
+.scenic-slider[data-value="0"] { --value-percent: 0%; }
+.scenic-slider[data-value="10"] { --value-percent: 10%; }
+.scenic-slider[data-value="20"] { --value-percent: 20%; }
+.scenic-slider[data-value="30"] { --value-percent: 30%; }
+.scenic-slider[data-value="40"] { --value-percent: 40%; }
+.scenic-slider[data-value="50"] { --value-percent: 50%; }
+.scenic-slider[data-value="60"] { --value-percent: 60%; }
+.scenic-slider[data-value="70"] { --value-percent: 70%; }
+.scenic-slider[data-value="80"] { --value-percent: 80%; }
+.scenic-slider[data-value="90"] { --value-percent: 90%; }
+.scenic-slider[data-value="100"] { --value-percent: 100%; }
+
+/* ==========================================
+   Scenic Backdrop — Dynamic Opacity/Blur
+   ========================================== */
+.scenic-layer {
+  opacity: calc(var(--scenic-opacity, 1) * var(--layer-enabled, 0));
+}
+
+.scenic-layer.scenic-enabled {
+  --layer-enabled: 1;
+}
+
+.scenic-overlay {
+  backdrop-filter: blur(var(--scenic-blur, 0px));
+  -webkit-backdrop-filter: blur(var(--scenic-blur, 0px));
+}
+
+/* ==========================================
+   Header Component Styles
+   ========================================== */
+header {
+  position: relative;
+  z-index: 10;
+}
+
+/* Search input placeholder color */
+header input::placeholder {
+  color: var(--color-hyperion-text-muted);
+}
+
+/* ==========================================
+   Footer Styles
+   ========================================== */
+footer {
+  position: relative;
+  z-index: 1;
+}

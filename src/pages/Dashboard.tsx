@@ -8,6 +8,7 @@ import { useClashStore } from "@/stores/clash";
 import { useClashWs, type WsState } from "@/services/clash-ws";
 import { formatBytes, formatSpeed } from "@/utils/format";
 import AnimatedCounter from "@/components/ui/AnimatedCounter";
+import Header from "@/components/layout/Header";
 
 // Types
 interface NodeInfo {
@@ -377,6 +378,8 @@ export default function Dashboard() {
 
   return (
     <div class="animate-page-in-enhanced space-y-5">
+      {/* Header */}
+      <Header breadcrumb="仪表盘" />
       {/* ===== Top: Greeting + Weather ===== */}
       <div class="flex items-start justify-between gap-4 flex-wrap">
         {/* Left: Greeting */}
@@ -785,6 +788,11 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer class="py-6 text-center" style={{ color: "var(--color-hyperion-text-muted)" }}>
+        <p class="text-sm">© 2024 Hyperion. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

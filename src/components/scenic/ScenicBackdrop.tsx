@@ -122,9 +122,18 @@ export default function ScenicBackdrop(props: { nodeName?: string }) {
   const nextImage = createMemo(() => images()[nextIndex() % images().length]);
   const kb = createMemo(() => KB_VARIANTS[kbVariant()]);
   const isEnabled = createMemo(() => settingsStore.settings().sakura_skin);
+  const opacity = createMemo(() => settingsStore.settings().scenic_opacity / 100);
+  const blur = createMemo(() => settingsStore.settings().scenic_blur);
 
   return (
-    <div class="scenic-layer" classList={{ "scenic-enabled": isEnabled() }}>
+    <div
+      class="scenic-layer"
+      classList={{ "scenic-enabled": isEnabled() }}
+      style={{
+        "--scenic-opacity": opacity(),
+        "--scenic-blur": `${blur()}px`,
+      }}
+    >
       <div
         class="scenic-image scenic-kb"
         style={{

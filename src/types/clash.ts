@@ -250,6 +250,9 @@ export interface HyperionSettings {
   auto_detect_clash: boolean;
   // v0.4.0 新增
   sakura_skin: boolean;
+  // v0.5.0 新增 - 风景模式控制
+  scenic_opacity: number;
+  scenic_blur: number;
 }
 
 export const DEFAULT_SETTINGS: HyperionSettings = {
@@ -267,6 +270,9 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   auto_detect_clash: true,
   // v0.4.0 新增
   sakura_skin: false,
+  // v0.5.0 新增 - 风景模式控制 (默认透明度100%，模糊度0)
+  scenic_opacity: 100,
+  scenic_blur: 0,
 };
 
 // ==========================================
