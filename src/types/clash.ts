@@ -265,7 +265,7 @@ export const DEFAULT_SETTINGS: HyperionSettings = {
   log_max_files: 10,
   proxy_guard: false,
   // v0.3.0 新增
-  wizard_completed: false,
+  wizard_completed: true,
   first_run: true,
   auto_detect_clash: true,
   // v0.4.0 新增

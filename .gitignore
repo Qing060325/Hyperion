@@ -40,3 +40,15 @@ test/
 *.db-shm
 *.metadb
 *.dat
+
+# Testing
+coverage/
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettiercache
+
+# Husky
+.husky/_/

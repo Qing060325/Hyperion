@@ -1,12 +1,12 @@
-import { For } from "solid-js";
-import { Cpu, Monitor, HardDrive } from "lucide-solid";
+import { Show, For } from "solid-js";
+import { CheckCircle, XCircle, Server, Activity, Heart } from "lucide-solid";
+import type { ClashVersion } from "@/types/clash";
 
 interface SystemStatusProps {
-  cpuUsage: () => number;
-  memUsage: () => number;
-  diskUsage: () => number;
+  connected: () => boolean;
+  version: () => ClashVersion | null;
+  nodeCount: number;
   healthScore: () => number;
-  uptime: () => string;
 }
 
 export default function SystemStatus(props: SystemStatusProps) {
@@ -14,20 +14,30 @@ export default function SystemStatus(props: SystemStatusProps) {
     <div class="card bg-base-100 animate-card-spring">
       <div class="flex items-center justify-between p-6 pb-4">
         <span style={{ "font-size": "16px", "font-weight": "600", color: "#333" }}>系统状态</span>
-        <span style={{ "font-size": "12px", color: "#999" }}>运行时间: {props.uptime()}</span>
+        <Show
+          when={props.connected()}
+          fallback={
+            <span style={{ "font-size": "12px", color: "#FF4757" }}>未连接</span>
+          }
+        >
+          <span style={{ "font-size": "12px", color: "#00C48C" }}>运行正常</span>
+        </Show>
       </div>
+
       <div class="px-6 pb-6 flex flex-col md:flex-row items-center gap-10">
-        {/* Health ring */}
         <div class="flex flex-col items-center flex-shrink-0">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="48" fill="none" stroke="#F0F0F0" stroke-width="6" />
             <circle
-              cx="60" cy="60" r="48" fill="none"
-              stroke="#534BFF"
+              cx="60"
+              cy="60"
+              r="48"
+              fill="none"
+              stroke={props.connected() ? "#00C48C" : "#FF4757"}
               stroke-width="6"
               stroke-linecap="round"
-              stroke-dasharray={2 * Math.PI * 48}
-              stroke-dashoffset={2 * Math.PI * 48 * (1 - props.healthScore() / 100)}
+              stroke-dasharray={`${2 * Math.PI * 48}`}
+              stroke-dashoffset={`${2 * Math.PI * 48 * (1 - props.healthScore() / 100)}`}
               transform="rotate(-90 60 60)"
               style={{ transition: "stroke-dashoffset 0.6s ease" }}
             />
@@ -40,13 +50,29 @@ export default function SystemStatus(props: SystemStatusProps) {
           </svg>
         </div>
 
-        {/* Bars */}
         <div class="flex-1 space-y-5 w-full">
-          <For each={[
-            { label: "CPU使用率", value: props.cpuUsage(), color: "#534BFF", icon: Cpu },
-            { label: "内存使用率", value: props.memUsage(), color: "#FFB800", icon: Monitor },
-            { label: "磁盘使用率", value: props.diskUsage(), color: "#00C48C", icon: HardDrive },
-          ]}>
+          <For
+            each={[
+              {
+                label: "连接状态",
+                value: props.connected() ? "已连接" : "未连接",
+                color: props.connected() ? "#00C48C" : "#FF4757",
+                icon: props.connected() ? CheckCircle : XCircle,
+              },
+              {
+                label: "代理节点",
+                value: `${props.nodeCount} 个`,
+                color: "#5B8CFF",
+                icon: Server,
+              },
+              {
+                label: "内核版本",
+                value: props.version()?.version || "-",
+                color: "#FFB800",
+                icon: Activity,
+              },
+            ]}
+          >
             {(item) => {
               const Icon = item.icon;
               return (
@@ -56,11 +82,18 @@ export default function SystemStatus(props: SystemStatusProps) {
                   <div class="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#F0F0F0" }}>
                     <div
                       class="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${item.value}%`, "background-color": item.color }}
+                      style={{ width: "100%", "background-color": item.color, opacity: 0.3 }}
                     />
                   </div>
-                  <span style={{ "font-size": "12px", color: "#333", width: "36px", "text-align": "right" }}>
-                    {Math.round(item.value)}%
+                  <span
+                    style={{
+                      "font-size": "12px",
+                      color: item.color,
+                      width: "80px",
+                      "text-align": "right",
+                    }}
+                  >
+                    {item.value}
                   </span>
                 </div>
               );

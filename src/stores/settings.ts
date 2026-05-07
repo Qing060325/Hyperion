@@ -1,31 +1,34 @@
 import { createStore } from "solid-js/store";
 import type { HyperionSettings } from "../types/clash";
 import { DEFAULT_SETTINGS } from "../types/clash";
+import { logger, logEmoji } from "../utils/logger";
 
 const STORAGE_KEY = "hyperion-settings";
 
 export function createSettingsStore() {
-  // 从 localStorage 加载
   const loadSaved = (): HyperionSettings => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        logger.log(`${logEmoji.settings} Loaded saved settings`);
+        return { ...DEFAULT_SETTINGS, ...parsed };
       }
-    } catch {
-      // 忽略解析错误
+    } catch (e) {
+      logger.error(`${logEmoji.error} Failed to load settings:`, e);
     }
+    logger.log(`${logEmoji.info} Using default settings`);
     return { ...DEFAULT_SETTINGS };
   };
 
   const [store, setStore] = createStore<HyperionSettings>(loadSaved());
 
-  // 自动持久化
   const persist = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-    } catch {
-      // 忽略存储错误
+      logger.debug(`${logEmoji.settings} Settings saved successfully`);
+    } catch (e) {
+      logger.error(`${logEmoji.error} Failed to save settings:`, e);
     }
   };
 

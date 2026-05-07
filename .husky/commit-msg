@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 验证提交信息格式
+commit_msg=$(cat "$1")
+if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,}"; then
+  echo "❌ 提交信息格式错误！"
+  echo ""
+  echo "请使用以下格式："
+  echo "  feat: 新功能"
+  echo "  fix: 修复 bug"
+  echo "  docs: 文档更新"
+  echo "  style: 代码格式调整"
+  echo "  refactor: 重构代码"
+  echo "  test: 测试相关"
+  echo "  chore: 构建/工具相关"
+  echo "  perf: 性能优化"
+  echo ""
+  echo "示例："
+  echo "  feat: 添加用户登录功能"
+  echo "  fix: 修复按钮无响应问题"
+  echo "  docs: 更新 README"
+  exit 1
+fi
