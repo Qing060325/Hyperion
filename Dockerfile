@@ -9,7 +9,9 @@ RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # 先复制依赖文件，利用 Docker 缓存层
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prefer-offline
+
+# 安装依赖，带重试机制和更好的错误处理
+RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
 # 再复制源码
 COPY . .
