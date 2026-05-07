@@ -2,7 +2,8 @@ import { createSignal, createEffect, Show } from "solid-js";
 import { useThemeStore } from "@/stores/theme";
 import { useClashStore } from "@/stores/clash";
 import { useSettingsStore } from "@/stores/settings";
-import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle } from "lucide-solid";
+import { useWizardStore } from "@/stores/wizard";
+import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle, Play, Pause } from "lucide-solid";
 import { clashRepository } from "@/domain";
 import ripple from "@/components/ui/RippleEffect";
 import HadesKernelManager from "@/components/kernel/HadesKernelManager";
@@ -13,6 +14,7 @@ export default function Settings() {
   const themeStore = useThemeStore();
   const clash = useClashStore();
   const settingsStore = useSettingsStore();
+  const wizardStore = useWizardStore();
 
   const [language, setLanguage] = createSignal("zh-CN");
   const [autoStart, setAutoStart] = createSignal(false);
@@ -236,8 +238,54 @@ export default function Settings() {
       {/* System Upgrade */}
       <SystemUpgrade clash={clash} />
 
-      {/* About */}
+      {/* Wizard Settings */}
       <div class="card bg-base-100 animate-card-spring stagger-5">
+        <div class="px-4 pt-4 pb-2">
+          <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">向导</span>
+        </div>
+        <div class="divide-y divide-base-200/50">
+          <SettingRow label="欢迎向导" desc="重新启动欢迎向导以配置应用">
+            <div class="flex gap-2">
+              <Show when={wizardStore.state().isPaused}>
+                <button
+                  use:ripple
+                  class="btn btn-sm btn-outline btn-warning rounded-xl gap-1.5"
+                  onClick={() => wizardStore.resume()}
+                >
+                  <Play size={14} />
+                  继续
+                </button>
+              </Show>
+              <button
+                use:ripple
+                class="btn btn-sm btn-outline btn-primary rounded-xl gap-1.5"
+                onClick={() => {
+                  settingsStore.updateSettings({ wizard_completed: false });
+                  settingsStore.saveSettings();
+                }}
+              >
+                <RefreshCw size={14} />
+                重新启动
+              </button>
+            </div>
+          </SettingRow>
+          <SettingRow label="向导状态">
+            <div class="flex gap-2">
+              <Show when={wizardStore.state().isPaused}>
+                <span class="badge badge-sm badge-warning">已暂停</span>
+              </Show>
+              <Show when={!wizardStore.state().isPaused}>
+                <span class={`badge badge-sm ${settingsStore.settings().wizard_completed ? 'badge-success' : 'badge-warning'}`}>
+                  {settingsStore.settings().wizard_completed ? '已完成' : '未完成'}
+                </span>
+              </Show>
+            </div>
+          </SettingRow>
+        </div>
+      </div>
+
+      {/* About */}
+      <div class="card bg-base-100 animate-card-spring stagger-6">
         <div class="px-4 pt-4 pb-2">
           <span class="text-xs font-semibold text-base-content/40 uppercase tracking-wider">关于</span>
         </div>
