@@ -17,7 +17,6 @@ export default function HadesKernelManager() {
   const [installSuccess, setInstallSuccess] = createSignal(false);
   const [installProgress, setInstallProgress] = createSignal(0);
 
-  // 检测 Hades 内核状态
   const checkKernelStatus = async () => {
     try {
       const response = await fetch("http://localhost:9090/version");
@@ -32,34 +31,19 @@ export default function HadesKernelManager() {
         });
         setInstallError(null);
       } else {
-        setKernelStatus({
-          installed: false,
-          version: "",
-          buildTime: "",
-          goVersion: "",
-          lastChecked: new Date(),
-        });
+        setKernelStatus({ installed: false, version: "", buildTime: "", goVersion: "", lastChecked: new Date() });
       }
-    } catch (error) {
-      setKernelStatus({
-        installed: false,
-        version: "",
-        buildTime: "",
-        goVersion: "",
-        lastChecked: new Date(),
-      });
+    } catch {
+      setKernelStatus({ installed: false, version: "", buildTime: "", goVersion: "", lastChecked: new Date() });
     }
   };
 
-  // 初始化时检查内核状态
   createEffect(() => {
     checkKernelStatus();
-    // 每 30 秒检查一次
     const interval = setInterval(checkKernelStatus, 30000);
     return () => clearInterval(interval);
   });
 
-  // 触发内核安装
   const handleInstallKernel = async () => {
     setIsInstalling(true);
     setInstallError(null);
@@ -67,21 +51,12 @@ export default function HadesKernelManager() {
     setInstallProgress(0);
 
     try {
-      // 显示安装进度
       setInstallProgress(25);
-
-      // 调用安装 API（这里假设后端提供了安装端点）
       const response = await fetch("http://localhost:9090/admin/install", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "install",
-          version: "latest",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "install", version: "latest" }),
       });
-
       setInstallProgress(50);
 
       if (!response.ok) {
@@ -90,28 +65,20 @@ export default function HadesKernelManager() {
       }
 
       setInstallProgress(75);
-
-      // 等待 2 秒后重新检查状态
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await checkKernelStatus();
-
       setInstallProgress(100);
       setInstallSuccess(true);
-
-      // 3 秒后隐藏成功提示
       setTimeout(() => setInstallSuccess(false), 3000);
     } catch (error) {
       console.error("安装失败:", error);
-      setInstallError(
-        error instanceof Error ? error.message : "安装过程中出错，请检查日志"
-      );
+      setInstallError(error instanceof Error ? error.message : "安装过程中出错，请检查日志");
     } finally {
       setIsInstalling(false);
       setInstallProgress(0);
     }
   };
 
-  // 触发内核更新
   const handleUpdateKernel = async () => {
     setIsInstalling(true);
     setInstallError(null);
@@ -120,17 +87,11 @@ export default function HadesKernelManager() {
 
     try {
       setInstallProgress(25);
-
       const response = await fetch("http://localhost:9090/admin/upgrade", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "upgrade",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "upgrade" }),
       });
-
       setInstallProgress(50);
 
       if (!response.ok) {
@@ -139,19 +100,14 @@ export default function HadesKernelManager() {
       }
 
       setInstallProgress(75);
-
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await checkKernelStatus();
-
       setInstallProgress(100);
       setInstallSuccess(true);
-
       setTimeout(() => setInstallSuccess(false), 3000);
     } catch (error) {
       console.error("更新失败:", error);
-      setInstallError(
-        error instanceof Error ? error.message : "更新过程中出错，请检查日志"
-      );
+      setInstallError(error instanceof Error ? error.message : "更新过程中出错，请检查日志");
     } finally {
       setIsInstalling(false);
       setInstallProgress(0);

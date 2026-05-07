@@ -1,6 +1,7 @@
 import { createSignal, Show, For } from "solid-js";
 import { Search, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { clashRepository } from "@/domain";
 import ripple from "@/components/ui/RippleEffect";
 
 const recordTypes = ["A", "AAAA", "CNAME", "TXT", "MX", "NS"];
@@ -23,28 +24,22 @@ export default function DNS() {
     if (!domain()) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ name: domain(), type: recordType() });
-      const token = clash.token();
-      if (token) params.set("token", token);
-      const res = await fetch(`${clash.baseUrl()}/dns/query?${params}`, { headers: clash.headers() });
-      if (res.ok) setResults(await res.json());
+      const data = await clashRepository.dns.query(domain(), recordType());
+      setResults(data as any);
     } catch (e) { console.error(e) }
     setLoading(false);
   };
 
   const fetchFakeIP = async () => {
     try {
-      const res = await fetch(`${clash.baseUrl()}/cache/fakeip/count`, { headers: clash.headers() });
-      if (res.ok) {
-        const data = await res.json();
-        setFakeIPCount(data.count || 0);
-      }
+      const res = await clashRepository.cache.fakeIPCount();
+      setFakeIPCount((res as any)?.count || 0);
     } catch (e) { console.error(e) }
   };
 
   const flushFakeIP = async () => {
     try {
-      await fetch(`${clash.baseUrl()}/cache/fakeip/flush`, { method: "POST", headers: clash.headers() });
+      await clashRepository.cache.flushFakeIP();
       setFakeIPCount(0);
     } catch (e) { console.error(e) }
   };

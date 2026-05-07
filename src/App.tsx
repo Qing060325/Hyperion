@@ -4,6 +4,7 @@ import { useThemeStore } from "./stores/theme";
 import { useClashStore } from "./stores/clash";
 import { useSettingsStore } from "./stores/settings";
 import { activeNode, setActiveNode } from "./stores/activeNode";
+import { clashRepository } from "@/domain";
 import MainLayout from "./components/layout/MainLayout";
 import WelcomeWizard from "./components/wizard/WelcomeWizard";
 import Dashboard from "./pages/Dashboard";
@@ -83,9 +84,7 @@ function LayoutWrapper(props: ParentProps) {
   onMount(() => {
     const fetchActiveNode = async () => {
       try {
-        const res = await fetch(`${clash.baseUrl()}/proxies`, { headers: clash.headers() });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await clashRepository.proxy.list() as any;
         const globalNow = data?.proxies?.GLOBAL?.now || data?.proxies?.["🚀 节点选择"]?.now || "";
         if (globalNow) setActiveNode(globalNow);
       } catch (e) {

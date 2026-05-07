@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { clashRepository } from "@/domain";
 import ripple from "@/components/ui/RippleEffect";
 
 interface Rule {
@@ -33,11 +34,8 @@ export default function Rules() {
 
   const fetchRules = async () => {
     try {
-      const res = await fetch(`${clash.baseUrl()}/rules`, { headers: clash.headers() });
-      if (res.ok) {
-        const data = await res.json();
-        setRules(data.rules || []);
-      }
+      const data = await clashRepository.rules.list();
+      setRules((data as any)?.rules ?? []);
     } catch (e) { console.error(e) }
   };
 

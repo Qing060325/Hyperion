@@ -19,7 +19,7 @@ export default function StatCard(props: StatCardProps) {
   };
 
   return (
-    <div class={`stat-card card bg-base-100 p-6 animate-card-spring ${staggerClass()}`}>
+    <div class={`stat-card card glass bg-base-100/70 p-6 animate-card-spring ${staggerClass()}`}>
       <div class="flex items-start justify-between">
         <div>
           <div style={{ "font-size": "14px", color: "#999" }}>{props.label}</div>

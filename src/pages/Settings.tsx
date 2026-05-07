@@ -3,6 +3,7 @@ import { useThemeStore } from "@/stores/theme";
 import { useClashStore } from "@/stores/clash";
 import { useSettingsStore } from "@/stores/settings";
 import { Sun, Moon, Monitor, Check, Link2, Unlink, Download, RefreshCw, AlertCircle } from "lucide-solid";
+import { clashRepository } from "@/domain";
 import ripple from "@/components/ui/RippleEffect";
 import HadesKernelManager from "@/components/kernel/HadesKernelManager";
 
@@ -57,11 +58,7 @@ export default function Settings() {
 
   const setMode = async (mode: string) => {
     try {
-      await fetch(`${clash.baseUrl()}/configs`, {
-        method: "PATCH",
-        headers: clash.headers(),
-        body: JSON.stringify({ mode }),
-      });
+      await clashRepository.config.patch({ mode });
     } catch (e) { console.error(e) }
   };
 
@@ -292,30 +289,20 @@ function SystemUpgrade(props: { clash: any }) {
   const checkUpgrade = async () => {
     setChecking(true);
     try {
-      const res = await fetch(`${props.clash.baseUrl()}/upgrade`, {
-        method: "POST",
-        headers: props.clash.headers(),
+      const data = await clashRepository.upgrade.check() as any;
+
+      setUpgradeStatus({
+        status: data.need_upgrade ? "downloading" : "idle",
+        message: data.message,
+        progress: 0,
+        current: data.current,
+        latest: data.latest,
       });
+      setShowModal(true);
 
-      if (res.ok) {
-        const data = await res.json();
-        setUpgradeStatus({
-          status: data.need_upgrade ? "downloading" : "idle",
-          message: data.message,
-          progress: 0,
-          current: data.current,
-          latest: data.latest,
-        });
-        setShowModal(true);
-
-        if (data.need_upgrade) {
-          setUpgrading(true);
-          // 开始轮询状态
-          pollUpgradeStatus();
-        }
-      } else {
-        const error = await res.json();
-        alert(`检查更新失败: ${error.error || "未知错误"}`);
+      if (data.need_upgrade) {
+        setUpgrading(true);
+        pollUpgradeStatus();
       }
     } catch (e) {
       console.error("检查更新失败:", e);
@@ -328,25 +315,18 @@ function SystemUpgrade(props: { clash: any }) {
   const pollUpgradeStatus = async () => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${props.clash.baseUrl()}/upgrade/status`, {
-          headers: props.clash.headers(),
-        });
+        const data = await clashRepository.upgrade.status() as any;
+        setUpgradeStatus(data);
 
-        if (res.ok) {
-          const data = await res.json();
-          setUpgradeStatus(data);
-
-          if (data.status === "completed" || data.status === "failed") {
-            clearInterval(interval);
-            setUpgrading(false);
-          }
+        if (data.status === "completed" || data.status === "failed") {
+          clearInterval(interval);
+          setUpgrading(false);
         }
       } catch (e) {
         console.error("获取升级状态失败:", e);
       }
     }, 2000);
 
-    // 30秒后自动停止轮询
     setTimeout(() => clearInterval(interval), 30000);
   };
 

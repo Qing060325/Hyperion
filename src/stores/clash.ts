@@ -1,5 +1,6 @@
 import { createStore } from "solid-js/store";
 import type { ClashConnectionConfig, ClashConfig, ClashVersion } from "../types/clash";
+import { syncDomainBaseURL } from "@/domain";
 
 const STORAGE_KEY = "hyperion-connection";
 
@@ -35,6 +36,7 @@ export function createClashStore() {
   const persistConnection = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store.connection));
+      syncDomainBaseURL();
     } catch {
       // 忽略存储错误
     }
@@ -83,6 +85,7 @@ export function createClashStore() {
 
   const connect = async () => {
     try {
+      syncDomainBaseURL();
       const res = await fetch(`${baseUrl()}/version`, {
         headers: headers(),
       });

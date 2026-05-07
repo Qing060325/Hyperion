@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { RefreshCw, MapPin, Database, RotateCcw } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { clashRepository } from "@/domain";
 import ripple from "@/components/ui/RippleEffect";
 
 interface ClashConfigData {
@@ -30,18 +31,15 @@ export default function Configs() {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch(`${clash.baseUrl()}/configs`, { headers: clash.headers() });
-      if (res.ok) setConfig(await res.json());
+      const data = await clashRepository.config.get();
+      setConfig(data as any);
     } catch (e) { console.error(e) }
   };
 
   const fetchProviders = async () => {
     try {
-      const res = await fetch(`${clash.baseUrl()}/providers/proxies`, { headers: clash.headers() });
-      if (res.ok) {
-        const data = await res.json();
-        setProviders(data.providers || []);
-      }
+      const data = await clashRepository.providers.proxies.list();
+      setProviders((data as any)?.providers ?? []);
     } catch (e) { console.error(e) }
   };
 
@@ -60,27 +58,24 @@ export default function Configs() {
   };
 
   const reloadConfig = () => action("reload", async () => {
-    await fetch(`${clash.baseUrl()}/configs`, { method: "PUT", headers: clash.headers(), body: JSON.stringify({ path: "" }) });
+    await clashRepository.config.reload({ path: "" });
   });
 
   const updateGeoIP = () => action("geoip", async () => {
-    await fetch(`${clash.baseUrl()}/configs/geo`, { method: "POST", headers: clash.headers(), body: JSON.stringify({ name: "geoip.dat" }) });
+    await clashRepository.config.geo("geoip.dat");
   });
 
   const updateGeoSite = () => action("geosite", async () => {
-    await fetch(`${clash.baseUrl()}/configs/geo`, { method: "POST", headers: clash.headers(), body: JSON.stringify({ name: "geosite.dat" }) });
+    await clashRepository.config.geo("geosite.dat");
   });
 
   const restartCore = () => action("restart", async () => {
-    await fetch(`${clash.baseUrl()}/restart`, { method: "POST", headers: clash.headers() });
+    await clashRepository.config.restart();
   });
 
   const updateProvider = async (name: string) => {
     try {
-      await fetch(`${clash.baseUrl()}/providers/proxies/${encodeURIComponent(name)}`, {
-        method: "PUT",
-        headers: clash.headers(),
-      });
+      await clashRepository.providers.proxies.update(name);
       setTimeout(fetchProviders, 1000);
     } catch (e) { console.error(e) }
   };

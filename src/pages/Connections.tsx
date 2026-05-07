@@ -2,6 +2,7 @@ import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, XCircle, Trash2 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
 import { useClashWs } from "@/services/clash-ws";
+import { clashRepository } from "@/domain";
 import { formatBytes } from "@/utils/format";
 import ripple from "@/components/ui/RippleEffect";
 
@@ -63,19 +64,13 @@ export default function Connections() {
 
   const closeAll = async () => {
     try {
-      await fetch(`${clash.baseUrl()}/connections`, {
-        method: "DELETE",
-        headers: clash.headers(),
-      });
+      await clashRepository.connections.closeAll();
     } catch (e) { console.error(e) }
   };
 
   const closeOne = async (id: string) => {
     try {
-      await fetch(`${clash.baseUrl()}/connections/${id}`, {
-        method: "DELETE",
-        headers: clash.headers(),
-      });
+      await clashRepository.connections.close(id);
     } catch (e) { console.error(e) }
   };
 

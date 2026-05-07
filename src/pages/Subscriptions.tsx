@@ -12,8 +12,10 @@ import {
   Clock,
   Server,
   RefreshCcw,
+  Info,
 } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { clashRepository } from "@/domain";
 import { formatBytes } from "@/utils/format";
 import ripple from "@/components/ui/RippleEffect";
 
@@ -52,13 +54,8 @@ export default function Subscriptions() {
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${clash.baseUrl()}/subscriptions`, {
-        headers: clash.headers(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSubscriptions(data.subscriptions || []);
-      }
+      const data = await clashRepository.subscriptions.list() as any;
+      setSubscriptions(data?.subscriptions ?? []);
     } catch (e) {
       console.error("获取订阅失败:", e);
     }
@@ -69,13 +66,8 @@ export default function Subscriptions() {
   const updateSubscription = async (name: string) => {
     setUpdating(name);
     try {
-      const res = await fetch(`${clash.baseUrl()}/subscriptions/${encodeURIComponent(name)}`, {
-        method: "PUT",
-        headers: clash.headers(),
-      });
-      if (res.ok) {
-        setTimeout(fetchSubscriptions, 1000);
-      }
+      await clashRepository.subscriptions.update(name);
+      setTimeout(fetchSubscriptions, 1000);
     } catch (e) {
       console.error("更新订阅失败:", e);
     }
@@ -86,13 +78,8 @@ export default function Subscriptions() {
   const updateAllSubscriptions = async () => {
     setUpdating("all");
     try {
-      const res = await fetch(`${clash.baseUrl()}/subscriptions`, {
-        method: "POST",
-        headers: clash.headers(),
-      });
-      if (res.ok) {
-        setTimeout(fetchSubscriptions, 1000);
-      }
+      await clashRepository.subscriptions.updateAll();
+      setTimeout(fetchSubscriptions, 1000);
     } catch (e) {
       console.error("更新所有订阅失败:", e);
     }

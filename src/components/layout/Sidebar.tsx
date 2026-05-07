@@ -74,7 +74,13 @@ export default function Sidebar() {
   return (
     <div
       class={`sidebar-container ${collapsed() ? "collapsed" : "expanded"} flex flex-col z-40`}
-      style={{ background: "var(--color-hyperion-sidebar-bg)", "transition-duration": "320ms", "transition-timing-function": "cubic-bezier(0.34, 0.1, 0.2, 1)" }}
+      style={{
+        // 采用淡紫渐变以贴近设计草案的侧边栏风格
+        background:
+          "linear-gradient(180deg, rgba(124, 92, 255, 0.25) 0%, rgba(124, 92, 255, 0.15) 100%), var(--color-hyperion-sidebar-bg)",
+        "transition-duration": "320ms",
+        "transition-timing-function": "cubic-bezier(0.34, 0.1, 0.2, 1)",
+      }}
     >
       {/* Logo */}
       <div class="flex items-center gap-3 px-5 h-16 flex-shrink-0">

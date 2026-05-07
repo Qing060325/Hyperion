@@ -9,7 +9,7 @@ import RuleEditor from "../components/rules/RuleEditor";
 import type { RuleFormData } from "../types/rule-editor";
 import { parseRulesString, validateRules } from "../components/rules/RuleValidator";
 import ripple from "@/components/ui/RippleEffect";
-import { clashApi } from "../services/clash-api";
+import { clashRepository } from "@/domain";
 
 export default function RuleEditorPage() {
   const navigate = useNavigate();
@@ -22,8 +22,8 @@ export default function RuleEditorPage() {
   onMount(async () => {
     try {
       // Load current rules from Clash
-      const rulesData = await clashApi.getRules();
-      const parsedRules = rulesData.rules.map((r, i) => ({
+      const rulesData = await clashRepository.rules.list() as any;
+      const parsedRules = (rulesData?.rules ?? []).map((r: any, i: number) => ({
         id: `rule-${i}`,
         type: r.type as any,
         payload: r.payload,
@@ -32,9 +32,8 @@ export default function RuleEditorPage() {
       }));
       setRules(parsedRules);
 
-      // Load available proxies
-      const proxyMap = await clashApi.getProxies();
-      const proxyNames = Object.keys(proxyMap);
+      const proxyMap = await clashRepository.proxy.list() as any;
+      const proxyNames = Object.keys(proxyMap ?? {});
       setProxies(['DIRECT', 'REJECT', 'GLOBAL', ...proxyNames]);
     } catch (err) {
       setError('无法加载规则数据');

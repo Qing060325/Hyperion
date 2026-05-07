@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { Search, Zap, ChevronDown, ChevronRight } from "lucide-solid";
 import { useClashStore } from "@/stores/clash";
+import { clashRepository } from "@/domain";
 import type { ClashProxy, ClashProxyGroup } from "@/types/clash";
 import ripple from "@/components/ui/RippleEffect";
 
@@ -54,35 +55,33 @@ export default function Proxies() {
 
   const fetchProxies = async () => {
     try {
-      const res = await fetch(`${clash.baseUrl()}/proxies`, { headers: clash.headers() });
-      if (res.ok) {
-        const data = await res.json();
-        setProxies(data.proxies || {});
+      const data = await clashRepository.proxy.list();
+      const proxiesData = (data as any)?.proxies ?? {};
+      setProxies(proxiesData);
 
-        // Detect proxy groups (Clash Meta style: has 'all' field)
-        const metaGroups = Object.values(data.proxies || {}).filter(
-          (p: any) => p.all !== undefined || p.now !== undefined
-        ) as ClashProxyGroup[];
+      // Detect proxy groups (Clash Meta style: has 'all' field)
+      const metaGroups = Object.values(proxiesData).filter(
+        (p: any) => p.all !== undefined || p.now !== undefined
+      ) as ClashProxyGroup[];
 
-        if (metaGroups.length > 0) {
-          setGroups(metaGroups);
-          setHasGroups(true);
-        } else {
-          // Hades / minimal API: no groups, synthesize one from all nodes
-          setHasGroups(false);
-          const allEntries = Object.entries(data.proxies || {}).filter(
-            ([, v]: any) => v.type && !["Direct", "Reject"].includes(v.type)
-          );
-          if (allEntries.length > 0) {
-            const synthetic: ClashProxyGroup = {
-              name: "全部节点",
-              type: "Selector",
-              now: allEntries[0][0],
-              all: allEntries.map(([name]) => name),
-            };
-            setGroups([synthetic]);
-            setExpanded(new Set(["全部节点"]));
-          }
+      if (metaGroups.length > 0) {
+        setGroups(metaGroups);
+        setHasGroups(true);
+      } else {
+        // Hades / minimal API: no groups, synthesize one from all nodes
+        setHasGroups(false);
+        const allEntries = Object.entries(proxiesData || {}).filter(
+          ([, v]: any) => v.type && !["Direct", "Reject"].includes(v.type)
+        );
+        if (allEntries.length > 0) {
+          const synthetic: ClashProxyGroup = {
+            name: "全部节点",
+            type: "Selector",
+            now: allEntries[0][0],
+            all: allEntries.map(([name]) => name),
+          };
+          setGroups([synthetic]);
+          setExpanded(new Set(["全部节点"]));
         }
       }
     } catch (e) { console.error(e) }
@@ -101,11 +100,7 @@ export default function Proxies() {
 
   const selectProxy = async (group: string, name: string) => {
     try {
-      await fetch(`${clash.baseUrl()}/proxies/${encodeURIComponent(group)}`, {
-        method: "PUT",
-        headers: clash.headers(),
-        body: JSON.stringify({ name }),
-      });
+      await clashRepository.proxy.select(group, name);
       fetchProxies();
     } catch (e) { console.error(e) }
   };
@@ -113,12 +108,7 @@ export default function Proxies() {
   const testDelay = async (group: string, name: string) => {
     setTestingNode(name);
     try {
-      const params = new URLSearchParams({ timeout: "5000", url: "https://www.gstatic.com/generate_204" });
-      const token = clash.token();
-      if (token) params.set("token", token);
-      await fetch(
-        `${clash.baseUrl()}/proxies/${encodeURIComponent(name)}/delay?${params}`
-      );
+      await clashRepository.proxy.delay(name, "https://www.gstatic.com/generate_204", 5000);
       setTimeout(fetchProxies, 500);
     } catch (e) { console.error(e) }
     setTestingNode(null);
@@ -129,15 +119,8 @@ export default function Proxies() {
     const g = groups();
     for (const group of g) {
       try {
-        const all = group.all || [];
-        const params = new URLSearchParams({ timeout: "5000", url: "https://www.gstatic.com/generate_204" });
-        const token = clash.token();
-        if (token) params.set("token", token);
-        // Try Clash Meta group delay API
-        await fetch(
-          `${clash.baseUrl()}/group/${encodeURIComponent(group.name)}/delay?${params}`,
-          { method: "GET" }
-        );
+        // Use domain layer to perform group delays (Clash Meta style)
+        await clashRepository.proxy.groupDelay(group.name, 5000, "https://www.gstatic.com/generate_204");
       } catch (e) { console.error(e) }
     }
     setTimeout(() => {
